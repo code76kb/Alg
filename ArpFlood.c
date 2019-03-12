@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -9,7 +10,7 @@
 // #include <netinet/ether.h>
 
 //ARP file
-#define ARP_TABEL  "/proc/net/arp";
+#define ARP_TABEL  "/proc/net/arp"
 
 
 //link Layer Sock Discriptor 
@@ -60,6 +61,7 @@ void decodeEther(unsigned char *buf, EtherNetFram *eth ,int debug);
 void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug);
 void writeToFile(unsigned char *data, int len,unsigned char *fileName);
 void getTargetInfo(unsigned char *target);
+int  find(char *buffer, char *pattern, int len);
 void flood();
 
 //Globel Var
@@ -373,13 +375,60 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug){
 void getTargetInfo(unsigned char * target){
     //find in arp tabel
     
-    FILE arpCache = fopen(ARP_TABEL, "r");
-    if(arpCache!=-1){
-       fread(payload,1,42,arpCache);
+    FILE *arpCache = fopen(ARP_TABEL, "r");
+    if(arpCache!=NULL){
+      unsigned char buffe[79];
+      char c;
+      int i = 0;
+      int targetFound = 0;
+      do{
+          //buffe[i] = (char)fgetc(arpCache);
+          buffe[i] =(char)fgetc(arpCache);
+        //   printf("\n arp Cache len =>%c, hex :%x  i =>%d",buffe[i], buffe[i], i);
+          i++;
+
+          if( 0xa == buffe[i-1]){ // on new line
+            i = 0;   
+            //find target in buffer
+            if( find(buffe,target,15) ){
+             printf("\n Target found in Arp tabel.");
+             targetFound = 1;
+             //get target mac
+             target_mac[0] = strtol(&buffe[41],NULL,16);
+             target_mac[1] = strtol(&buffe[44],NULL,16);
+             target_mac[2] = strtol(&buffe[47],NULL,16);
+             target_mac[3] = strtol(&buffe[50],NULL,16);
+             target_mac[4] = strtol(&buffe[53],NULL,16);
+             target_mac[5] = strtol(&buffe[56],NULL,16);
+
+             printf("\n Target Mac => %02X:%02X:%02X:%02X:%02X:%02X",target_mac[0],target_mac[1],target_mac[2],target_mac[3],target_mac[4],target_mac[5]);
+            }
+          
+          }
+      }
+      while(buffe[i-1] != EOF && !targetFound);
+
+      //
+      if(!targetFound){
+       //boradcast arp request
+       printf("\n Target Not found in ARP Tabel.");
+      }
+      
     }
 
     //requerst target mac
 
 }
+
+//Patern Match
+int find(char *buffer, char *pattern, int len){
+   for(int i=0; i<len; i++){
+      //printf("\n matcheing => %02X == %02X",buffer[i],pattern[i]); //Debug
+       if(buffer[i] != pattern[i] && buffer[i] != 0x20){
+          return 0;
+         }
+   }
+   return 1;
+} 
 
 
