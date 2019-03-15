@@ -111,8 +111,11 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp){
  printf("\n type => %02X:%02X",buf[12],buf[13]);
 
  printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
- printf("\n Ptype :%02x",arp_packet.PTYPE[0]);
+ printf("\n Ptype :%02x:%02x",arp_packet.PTYPE[0],arp_packet.PTYPE[1]);
  printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
+ printf("\n HLEN :%02X",arp_packet.HLEN[0]); 
+ printf("\n PLEN :%02X",arp_packet.PLEN[0]);
+
  if(arp_packet.OPER[1] == 0x01){
    printf("  Request");
  }
