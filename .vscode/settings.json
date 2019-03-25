@@ -1,4 +1,13 @@
 {
     "git.ignoreLimitWarning": true,
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "if_arp.h": "c",
+        "if.h": "c",
+        "inet.h": "c",
+        "if_packet.h": "c",
+        "unistd.h": "c",
+        "in.h": "c",
+        "socket.h": "c"
+    }
 }
