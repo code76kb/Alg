@@ -493,10 +493,16 @@ int find(char *buffer, char *pattern, int len){
   //here 0x20 is 'space' charecter in assci
    for(int i=0; i<len; i++){
       //printf("\n matcheing => %c == %c",buffer[i],pattern[i]); //Debug
-      if(pattern[i] != 0x00 && buffer[i] != 0x20){
-        if(buffer[i] != pattern[i])
+      if(pattern[i] != 0x00){
+        if (buffer[i] != 0x20){
+          if(buffer[i] != pattern[i])
+            return 0;
+        }
+        else
           return 0;
       }
+      else if(buffer[i] != 0x20)
+       return 0;
    }
    return 1;
 } 

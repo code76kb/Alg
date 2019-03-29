@@ -1,0 +1,818 @@
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:32 IST
+Nmap scan report for 192.168.1.1
+Host is up (0.013s latency).
+Not shown: 995 closed ports
+PORT      STATE SERVICE
+53/tcp    open  domain
+80/tcp    open  http
+443/tcp   open  https
+1723/tcp  open  pptp
+60443/tcp open  unknown
+MAC Address: 18:E7:28:3B:60:08 (Cisco Systems)
+Device type: general purpose
+Running: Linux 2.6.X
+OS CPE: cpe:/o:linux:linux_kernel:2.6
+OS details: Linux 2.6.9 - 2.6.30
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 4.10 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:32 IST
+Nmap scan report for 192.168.1.2
+Host is up (0.00055s latency).
+Not shown: 983 closed ports
+PORT     STATE    SERVICE
+22/tcp   open     ssh
+25/tcp   open     smtp
+53/tcp   open     domain
+80/tcp   open     http
+81/tcp   open     hosts2-ns
+82/tcp   open     xfer
+83/tcp   open     mit-ml-dev
+443/tcp  open     https
+465/tcp  open     smtps
+993/tcp  open     imaps
+995/tcp  open     pop3s
+1433/tcp open     ms-sql-s
+1501/tcp open     sas-3
+1875/tcp open     westell-stats
+3128/tcp filtered squid-http
+3306/tcp open     mysql
+8080/tcp open     http-proxy
+MAC Address: EC:A8:6B:77:51:5F (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.65 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:32 IST
+Nmap scan report for 192.168.1.11
+Host is up (0.00052s latency).
+Not shown: 991 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+53/tcp   open  domain
+80/tcp   open  http
+81/tcp   open  hosts2-ns
+82/tcp   open  xfer
+83/tcp   open  mit-ml-dev
+443/tcp  open  https
+1875/tcp open  westell-stats
+3306/tcp open  mysql
+MAC Address: D0:17:C2:9C:41:74 (Unknown)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.54 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:32 IST
+Nmap scan report for 192.168.1.12
+Host is up (0.00058s latency).
+Not shown: 988 closed ports
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+2869/tcp  open  icslap
+5357/tcp  open  wsdapi
+49152/tcp open  unknown
+49153/tcp open  unknown
+49154/tcp open  unknown
+49155/tcp open  unknown
+49156/tcp open  unknown
+49157/tcp open  unknown
+49158/tcp open  unknown
+MAC Address: 00:22:4D:B1:7F:11 (Mitac International)
+Device type: general purpose|media device
+Running: Microsoft Windows 2008|10|7|8.1, Microsoft embedded
+OS CPE: cpe:/o:microsoft:windows_server_2008::sp2 cpe:/o:microsoft:windows_10 cpe:/h:microsoft:xbox_one cpe:/o:microsoft:windows_7::- cpe:/o:microsoft:windows_7::sp1 cpe:/o:microsoft:windows_8 cpe:/o:microsoft:windows_8.1
+OS details: Microsoft Windows Server 2008 SP2 or Windows 10 Tech Preview or Xbox One, Microsoft Windows 7 SP0 - SP1, Windows Server 2008 SP1, Windows 8, or Windows 8.1 Update 1
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 57.69 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:33 IST
+Nmap scan report for 192.168.1.20
+Host is up (0.00037s latency).
+All 1000 scanned ports on 192.168.1.20 are closed
+MAC Address: 30:5A:3A:7D:B8:46 (Asustek Computer)
+Too many fingerprints match this host to give specific OS details
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.68 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:33 IST
+Nmap scan report for 192.168.1.33
+Host is up (0.00025s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+MAC Address: 30:5A:3A:7D:B8:31 (Asustek Computer)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.56 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:33 IST
+Nmap scan report for 192.168.1.34
+Host is up (0.00056s latency).
+Not shown: 990 closed ports
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+49152/tcp open  unknown
+49153/tcp open  unknown
+49154/tcp open  unknown
+49155/tcp open  unknown
+49156/tcp open  unknown
+49158/tcp open  unknown
+49159/tcp open  unknown
+MAC Address: EC:A8:6B:FB:44:5D (Elitegroup Computer Systems)
+Device type: general purpose|media device
+Running: Microsoft Windows 2008|10|7|8.1, Microsoft embedded
+OS CPE: cpe:/o:microsoft:windows_server_2008::sp2 cpe:/o:microsoft:windows_10 cpe:/h:microsoft:xbox_one cpe:/o:microsoft:windows_7::- cpe:/o:microsoft:windows_7::sp1 cpe:/o:microsoft:windows_8 cpe:/o:microsoft:windows_8.1
+OS details: Microsoft Windows Server 2008 SP2 or Windows 10 Tech Preview or Xbox One, Microsoft Windows 7 SP0 - SP1, Windows Server 2008 SP1, Windows 8, or Windows 8.1 Update 1
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 106.84 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:35 IST
+Nmap scan report for 192.168.1.35
+Host is up (0.00072s latency).
+Not shown: 988 closed ports
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+3389/tcp  open  ms-wbt-server
+5357/tcp  open  wsdapi
+49152/tcp open  unknown
+49153/tcp open  unknown
+49154/tcp open  unknown
+49155/tcp open  unknown
+49156/tcp open  unknown
+49157/tcp open  unknown
+49158/tcp open  unknown
+MAC Address: D0:17:C2:9C:41:8A (Unknown)
+Device type: general purpose|media device
+Running: Microsoft Windows 2008|10|7|8.1, Microsoft embedded
+OS CPE: cpe:/o:microsoft:windows_server_2008::sp2 cpe:/o:microsoft:windows_10 cpe:/h:microsoft:xbox_one cpe:/o:microsoft:windows_7::- cpe:/o:microsoft:windows_7::sp1 cpe:/o:microsoft:windows_8 cpe:/o:microsoft:windows_8.1
+OS details: Microsoft Windows Server 2008 SP2 or Windows 10 Tech Preview or Xbox One, Microsoft Windows 7 SP0 - SP1, Windows Server 2008 SP1, Windows 8, or Windows 8.1 Update 1
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 108.12 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:37 IST
+Nmap scan report for 192.168.1.40
+Host is up (0.00050s latency).
+Not shown: 990 closed ports
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+49152/tcp open  unknown
+49153/tcp open  unknown
+49154/tcp open  unknown
+49155/tcp open  unknown
+49156/tcp open  unknown
+49157/tcp open  unknown
+49158/tcp open  unknown
+MAC Address: EC:A8:6B:FB:6C:FF (Elitegroup Computer Systems)
+Device type: general purpose|media device
+Running: Microsoft Windows 2008|10|7|8.1, Microsoft embedded
+OS CPE: cpe:/o:microsoft:windows_server_2008::sp2 cpe:/o:microsoft:windows_10 cpe:/h:microsoft:xbox_one cpe:/o:microsoft:windows_7::- cpe:/o:microsoft:windows_7::sp1 cpe:/o:microsoft:windows_8 cpe:/o:microsoft:windows_8.1
+OS details: Microsoft Windows Server 2008 SP2 or Windows 10 Tech Preview or Xbox One, Microsoft Windows 7 SP0 - SP1, Windows Server 2008 SP1, Windows 8, or Windows 8.1 Update 1
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 90.52 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:38 IST
+Nmap scan report for 192.168.1.54
+Host is up (0.00092s latency).
+Not shown: 997 closed ports
+PORT     STATE SERVICE
+445/tcp  open  microsoft-ds
+548/tcp  open  afp
+5900/tcp open  vnc
+MAC Address: 0C:4D:E9:9B:C7:3F (Apple)
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.01%E=4%D=3/26%OT=445%CT=1%CU=43761%PV=Y%DS=1%DC=D%G=Y%M=0C4DE9%
+OS:TM=5C99C220%P=x86_64-pc-linux-gnu)SEQ(SP=106%GCD=1%ISR=109%TI=Z%CI=RD%TS
+OS:=A)OPS(O1=M5B4NW6NNT11SLL%O2=M5B4NW6NNT11SLL%O3=M5B4NW6NNT11%O4=M5B4NW6N
+OS:NT11SLL%O5=M5B4NW6NNT11SLL%O6=M5B4NNT11SLL)WIN(W1=FFFF%W2=FFFF%W3=FFFF%W
+OS:4=FFFF%W5=FFFF%W6=FFFF)ECN(R=Y%DF=Y%T=40%W=FFFF%O=M5B4NW6SLL%CC=N%Q=)T1(
+OS:R=Y%DF=Y%T=40%S=O%A=S+%F=AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S
+OS:=A%A=Z%F=R%O=%RD=0%Q=)T5(R=Y%DF=N%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R
+OS:=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)T7(R=Y%DF=N%T=40%W=0%S=Z%A=S%F=A
+OS:R%O=%RD=0%Q=)U1(R=Y%DF=N%T=40%IPL=38%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=0%RU
+OS:D=G)IE(R=Y%DFI=S%T=40%CD=S)
+
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 63.07 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:39 IST
+Nmap scan report for 192.168.1.55
+Host is up (0.00052s latency).
+Not shown: 991 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+443/tcp  open  https
+445/tcp  open  microsoft-ds
+3000/tcp open  ppp
+3306/tcp open  mysql
+5900/tcp open  vnc
+MAC Address: C0:3F:D5:60:48:C8 (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 7.53 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:39 IST
+Nmap scan report for 192.168.1.56
+Host is up (0.00030s latency).
+Not shown: 994 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+443/tcp  open  https
+445/tcp  open  microsoft-ds
+3306/tcp open  mysql
+MAC Address: EC:A8:6B:76:86:C5 (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.52 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:39 IST
+Nmap scan report for 192.168.1.61
+Host is up (0.00058s latency).
+Not shown: 992 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+443/tcp  open  https
+445/tcp  open  microsoft-ds
+3306/tcp open  mysql
+5900/tcp open  vnc
+MAC Address: 70:54:D2:44:95:9E (Pegatron)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.50 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:39 IST
+Nmap scan report for 192.168.1.62
+Host is up (0.00044s latency).
+Not shown: 994 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+5900/tcp open  vnc
+7070/tcp open  realserver
+MAC Address: EC:A8:6B:FC:AF:AB (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.48 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:39 IST
+Nmap scan report for 192.168.1.63
+Host is up (0.00076s latency).
+Not shown: 995 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+1433/tcp open  ms-sql-s
+5900/tcp open  vnc
+MAC Address: C0:3F:D5:60:5C:7D (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.55 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:39 IST
+Nmap scan report for 192.168.1.71
+Host is up (0.00064s latency).
+Not shown: 998 closed ports
+PORT     STATE SERVICE
+445/tcp  open  microsoft-ds
+5900/tcp open  vnc
+MAC Address: AC:87:A3:2C:6B:AF (Apple)
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.01%E=4%D=3/26%OT=445%CT=1%CU=40223%PV=Y%DS=1%DC=D%G=Y%M=AC87A3%
+OS:TM=5C99C270%P=x86_64-pc-linux-gnu)SEQ(SP=106%GCD=1%ISR=108%TI=Z%CI=RD%TS
+OS:=A)SEQ(SP=106%GCD=1%ISR=10C%TI=Z%CI=RD%II=RI%TS=A)OPS(O1=M5B4NW6NNT11SLL
+OS:%O2=M5B4NW6NNT11SLL%O3=M5B4NW6NNT11%O4=M5B4NW6NNT11SLL%O5=M5B4NW6NNT11SL
+OS:L%O6=M5B4NNT11SLL)WIN(W1=FFFF%W2=FFFF%W3=FFFF%W4=FFFF%W5=FFFF%W6=FFFF)EC
+OS:N(R=Y%DF=Y%T=40%W=FFFF%O=M5B4NW6SLL%CC=Y%Q=)T1(R=Y%DF=Y%T=40%S=O%A=S+%F=
+OS:AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)T5(
+OS:R=Y%DF=N%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=40%W=0%S=A%A=Z%
+OS:F=R%O=%RD=0%Q=)T7(R=Y%DF=N%T=40%W=0%S=Z%A=S%F=AR%O=%RD=0%Q=)U1(R=Y%DF=N%
+OS:T=40%IPL=38%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=0%RUD=G)IE(R=Y%DFI=S%T=40%CD=
+OS:S)
+
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 57.83 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:40 IST
+Nmap scan report for 192.168.1.75
+Host is up (0.00034s latency).
+Not shown: 998 closed ports
+PORT    STATE SERVICE
+139/tcp open  netbios-ssn
+445/tcp open  microsoft-ds
+MAC Address: EC:A8:6B:F7:A4:B9 (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.42 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.78
+Host is up (0.00049s latency).
+All 1000 scanned ports on 192.168.1.78 are closed
+MAC Address: EC:A8:6B:FD:EA:2D (Elitegroup Computer Systems)
+Too many fingerprints match this host to give specific OS details
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.62 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.79
+Host is up (0.00053s latency).
+Not shown: 994 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+443/tcp  open  https
+445/tcp  open  microsoft-ds
+3306/tcp open  mysql
+MAC Address: 70:54:D2:44:95:27 (Pegatron)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.40 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.82
+Host is up (0.00055s latency).
+Not shown: 996 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+9090/tcp open  zeus-admin
+MAC Address: EC:A8:6B:F7:06:AA (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.42 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.83
+Host is up (0.00038s latency).
+Not shown: 993 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+443/tcp  open  https
+445/tcp  open  microsoft-ds
+3306/tcp open  mysql
+MAC Address: D0:17:C2:9C:41:79 (Unknown)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.41 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.152
+Host is up (0.00033s latency).
+Not shown: 994 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+3000/tcp open  ppp
+4000/tcp open  remoteanything
+MAC Address: D0:17:C2:9C:42:28 (Unknown)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.43 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.157
+Host is up (0.00035s latency).
+Not shown: 995 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+80/tcp   open  http
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+5900/tcp open  vnc
+MAC Address: C0:3F:D5:60:60:81 (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.44 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:41 IST
+Nmap scan report for 192.168.1.166
+Host is up (0.0078s latency).
+Not shown: 999 closed ports
+PORT      STATE SERVICE
+62078/tcp open  iphone-sync
+MAC Address: 80:B0:3D:71:16:1C (Unknown)
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.01%E=4%D=3/26%OT=62078%CT=1%CU=35370%PV=Y%DS=1%DC=D%G=Y%M=80B03
+OS:D%TM=5C99C338%P=x86_64-pc-linux-gnu)SEQ(SP=103%GCD=1%ISR=10E%TI=Z%CI=RD%
+OS:TS=A)SEQ(SP=106%GCD=1%ISR=106%TI=Z%CI=RD%II=RI%TS=A)OPS(O1=M5B4NW6NNT11S
+OS:LL%O2=M5B4NW6NNT11SLL%O3=M5B4NW6NNT11%O4=M5B4NW6NNT11SLL%O5=M5B4NW6NNT11
+OS:SLL%O6=M5B4NNT11SLL)WIN(W1=FFFF%W2=FFFF%W3=FFFF%W4=FFFF%W5=FFFF%W6=FFFF)
+OS:ECN(R=Y%DF=Y%T=40%W=FFFF%O=M5B4NW6SLL%CC=Y%Q=)ECN(R=N)T1(R=Y%DF=Y%T=40%S
+OS:=O%A=S+%F=AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%R
+OS:D=0%Q=)T5(R=Y%DF=N%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=40%W=
+OS:0%S=A%A=Z%F=R%O=%RD=0%Q=)T7(R=Y%DF=N%T=40%W=0%S=Z%A=S%F=AR%O=%RD=0%Q=)U1
+OS:(R=Y%DF=N%T=40%IPL=38%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=0%RUD=G)IE(R=Y%DFI=
+OS:S%T=40%CD=S)
+
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 175.60 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Nmap scan report for 192.168.1.168
+Host is up (0.00026s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE
+22/tcp open  ssh
+MAC Address: D0:17:C2:9C:41:6F (Unknown)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.40 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Nmap scan report for 192.168.1.172
+Host is up (0.00032s latency).
+Not shown: 996 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+80/tcp   open  http
+443/tcp  open  https
+3306/tcp open  mysql
+MAC Address: EC:A8:6B:FE:53:12 (Elitegroup Computer Systems)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.41 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn
+Nmap done: 1 IP address (0 hosts up) scanned in 0.67 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Nmap scan report for 192.168.1.174
+Host is up (0.000011s latency).
+Not shown: 993 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+5222/tcp open  xmpp-client
+5269/tcp open  xmpp-server
+5280/tcp open  xmpp-bosh
+5900/tcp open  vnc
+Device type: general purpose
+Running: Linux 3.X
+OS CPE: cpe:/o:linux:linux_kernel:3
+OS details: Linux 3.12 - 3.19, Linux 3.8 - 3.19
+Network Distance: 0 hops
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.92 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Nmap scan report for 192.168.1.177
+Host is up (0.0075s latency).
+All 1000 scanned ports on 192.168.1.177 are closed
+MAC Address: CC:9F:7A:80:F3:49 (Unknown)
+Too many fingerprints match this host to give specific OS details
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 11.99 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Nmap scan report for 192.168.1.185
+Host is up (0.011s latency).
+All 1000 scanned ports on 192.168.1.185 are closed
+MAC Address: F0:C8:50:8D:0F:50 (Unknown)
+Too many fingerprints match this host to give specific OS details
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 7.41 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:44 IST
+Nmap scan report for 192.168.1.186
+Host is up (0.00072s latency).
+Not shown: 990 filtered ports
+PORT     STATE  SERVICE
+21/tcp   closed ftp
+22/tcp   open   ssh
+23/tcp   open   telnet
+80/tcp   open   http
+427/tcp  open   svrloc
+443/tcp  open   https
+3389/tcp open   ms-wbt-server
+5900/tcp open   vnc
+5988/tcp open   wbem-http
+5989/tcp open   wbem-https
+MAC Address: 40:F2:E9:38:29:4D (IBM)
+Device type: general purpose
+Running: Linux 2.6.X
+OS CPE: cpe:/o:linux:linux_kernel:2.6
+OS details: Linux 2.6.18 - 2.6.22
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 19.54 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:45 IST
+Nmap scan report for 192.168.1.187
+Host is up (0.00092s latency).
+Not shown: 990 filtered ports
+PORT     STATE  SERVICE
+21/tcp   closed ftp
+22/tcp   open   ssh
+23/tcp   open   telnet
+80/tcp   open   http
+427/tcp  open   svrloc
+443/tcp  open   https
+3389/tcp open   ms-wbt-server
+5900/tcp open   vnc
+5988/tcp open   wbem-http
+5989/tcp open   wbem-https
+MAC Address: 40:F2:E9:37:1B:70 (IBM)
+Device type: general purpose
+Running: Linux 2.6.X
+OS CPE: cpe:/o:linux:linux_kernel:2.6
+OS details: Linux 2.6.18 - 2.6.22
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 18.75 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:45 IST
+Nmap scan report for 192.168.1.195
+Host is up (0.00062s latency).
+Not shown: 999 closed ports
+PORT   STATE SERVICE
+53/tcp open  domain
+MAC Address: AC:87:A3:21:BE:28 (Apple)
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.01%E=4%D=3/26%OT=53%CT=1%CU=42789%PV=Y%DS=1%DC=D%G=Y%M=AC87A3%T
+OS:M=5C99C3B8%P=x86_64-pc-linux-gnu)SEQ(SP=105%GCD=1%ISR=10C%TI=Z%CI=RI%TS=
+OS:A)SEQ(SP=103%GCD=1%ISR=108%TI=Z%TS=A)OPS(O1=M5B4NW6NNT11SLL%O2=M5B4NW6NN
+OS:T11SLL%O3=M5B4NW6NNT11%O4=M5B4NW6NNT11SLL%O5=M5B4NW6NNT11SLL%O6=M5B4NNT1
+OS:1SLL)WIN(W1=FFFF%W2=FFFF%W3=FFFF%W4=FFFF%W5=FFFF%W6=FFFF)ECN(R=Y%DF=N%T=
+OS:40%W=FFFF%O=M5B4NW6SLL%CC=Y%Q=)T1(R=Y%DF=N%T=40%S=O%A=S+%F=AS%RD=0%Q=)T2
+OS:(R=N)T3(R=N)T4(R=Y%DF=N%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)T5(R=Y%DF=N%T=40
+OS:%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=N%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q
+OS:=)T6(R=N)T7(R=N)U1(R=Y%DF=N%T=40%IPL=38%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=0
+OS:%RUD=G)IE(R=Y%DFI=N%T=40%CD=S)
+
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 58.46 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:46 IST
+Nmap scan report for 192.168.1.201
+Host is up (0.00059s latency).
+Not shown: 996 closed ports
+PORT     STATE SERVICE
+135/tcp  open  msrpc
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+5357/tcp open  wsdapi
+MAC Address: 00:22:4D:B1:FF:00 (Mitac International)
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.01%E=4%D=3/26%OT=135%CT=1%CU=40545%PV=Y%DS=1%DC=D%G=Y%M=00224D%
+OS:TM=5C99C3ED%P=x86_64-pc-linux-gnu)SEQ(SP=102%GCD=1%ISR=10B%TI=I%CI=I%TS=
+OS:U)SEQ(SP=102%GCD=1%ISR=10B%TI=I%TS=U)OPS(O1=M5B4NW8NNS%O2=M5B4NW8NNS%O3=
+OS:M5B4NW8%O4=M5B4NW8NNS%O5=M5B4NW8NNS%O6=M5B4NNS)WIN(W1=FFFF%W2=FFFF%W3=FF
+OS:FF%W4=FFFF%W5=FFFF%W6=FF70)ECN(R=Y%DF=Y%T=80%W=FFFF%O=M5B4NW8NNS%CC=N%Q=
+OS:)T1(R=Y%DF=Y%T=80%S=O%A=S+%F=AS%RD=0%Q=)T2(R=Y%DF=Y%T=80%W=0%S=Z%A=S%F=A
+OS:R%O=%RD=0%Q=)T3(R=Y%DF=Y%T=80%W=0%S=Z%A=O%F=AR%O=%RD=0%Q=)T4(R=Y%DF=Y%T=
+OS:80%W=0%S=A%A=O%F=R%O=%RD=0%Q=)T5(R=Y%DF=Y%T=80%W=0%S=Z%A=S+%F=AR%O=%RD=0
+OS:%Q=)T6(R=Y%DF=Y%T=80%W=0%S=A%A=O%F=R%O=%RD=0%Q=)T7(R=Y%DF=Y%T=80%W=0%S=Z
+OS:%A=S+%F=AR%O=%RD=0%Q=)U1(R=Y%DF=N%T=80%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G
+OS:%RUCK=G%RUD=G)IE(R=Y%DFI=N%T=80%CD=Z)
+
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 53.29 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:47 IST
+Nmap scan report for 192.168.1.205
+Host is up (0.00052s latency).
+Not shown: 988 closed ports
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+3389/tcp  open  ms-wbt-server
+5357/tcp  open  wsdapi
+49152/tcp open  unknown
+49153/tcp open  unknown
+49154/tcp open  unknown
+49155/tcp open  unknown
+49156/tcp open  unknown
+49157/tcp open  unknown
+49158/tcp open  unknown
+MAC Address: 1C:B7:2C:B0:3C:B7 (Asustek Computer)
+Device type: general purpose|media device
+Running: Microsoft Windows 2008|10|7|8.1, Microsoft embedded
+OS CPE: cpe:/o:microsoft:windows_server_2008::sp2 cpe:/o:microsoft:windows_10 cpe:/h:microsoft:xbox_one cpe:/o:microsoft:windows_7::- cpe:/o:microsoft:windows_7::sp1 cpe:/o:microsoft:windows_8 cpe:/o:microsoft:windows_8.1
+OS details: Microsoft Windows Server 2008 SP2 or Windows 10 Tech Preview or Xbox One, Microsoft Windows 7 SP0 - SP1, Windows Server 2008 SP1, Windows 8, or Windows 8.1 Update 1
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 114.92 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:49 IST
+Nmap scan report for 192.168.1.210
+Host is up (0.00019s latency).
+Not shown: 998 closed ports
+PORT    STATE SERVICE
+139/tcp open  netbios-ssn
+445/tcp open  microsoft-ds
+MAC Address: D0:17:C2:9C:42:2A (Unknown)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.48 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:49 IST
+Nmap scan report for 192.168.1.252
+Host is up (0.00064s latency).
+Not shown: 997 closed ports
+PORT    STATE SERVICE
+53/tcp  open  domain
+80/tcp  open  http
+443/tcp open  https
+MAC Address: 20:AA:4B:DB:BA:75 (Cisco-Linksys)
+No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
+TCP/IP fingerprint:
+OS:SCAN(V=7.01%E=4%D=3/26%OT=53%CT=1%CU=32152%PV=Y%DS=1%DC=D%G=Y%M=20AA4B%T
+OS:M=5C99C48D%P=x86_64-pc-linux-gnu)SEQ(SP=104%GCD=1%ISR=10C%TI=Z%CI=Z%TS=7
+OS:)OPS(O1=M5B4ST11NW1%O2=M5B4ST11NW1%O3=M5B4NNT11NW1%O4=M5B4ST11NW1%O5=M5B
+OS:4ST11NW1%O6=M5B4ST11)WIN(W1=16A0%W2=16A0%W3=16A0%W4=16A0%W5=16A0%W6=16A0
+OS:)ECN(R=Y%DF=Y%T=40%W=16D0%O=M5B4NNSNW1%CC=N%Q=)T1(R=Y%DF=Y%T=40%S=O%A=S+
+OS:%F=AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)
+OS:T5(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=40%W=0%S=A%A
+OS:=Z%F=R%O=%RD=0%Q=)T7(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)U1(R=Y%D
+OS:F=N%T=40%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD=G)IE(R=Y%DFI=N%T=4
+OS:0%CD=S)
+
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 41.45 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:49 IST
+Nmap scan report for 192.168.1.253
+Host is up (0.00041s latency).
+Not shown: 998 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+8081/tcp open  blackice-icecap
+MAC Address: 40:F2:E9:37:1B:6C (IBM)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.50 seconds
+
+Starting Nmap 7.01 ( https://nmap.org ) at 2019-03-26 11:50 IST
+Nmap scan report for 192.168.1.254
+Host is up (0.00031s latency).
+Not shown: 998 closed ports
+PORT     STATE SERVICE
+22/tcp   open  ssh
+3000/tcp open  ppp
+MAC Address: 40:F2:E9:38:29:49 (IBM)
+Device type: general purpose
+Running: Linux 3.X|4.X
+OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
+OS details: Linux 3.2 - 4.0
+Network Distance: 1 hop
+
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 3.40 seconds

